@@ -9,17 +9,20 @@ import (
 	"errors"
 	"time"
 
+	// "math/rand"
+	// "encoding/hex"
+
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/crypto"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/actions"
+	trpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/rpc"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/utils"
+	"github.com/AnomalyFi/hypersdk/rpc"
+	hutils "github.com/AnomalyFi/hypersdk/utils"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/crypto"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/utils"
-	"github.com/ava-labs/hypersdk/rpc"
-	hutils "github.com/ava-labs/hypersdk/utils"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -135,6 +138,65 @@ var createAssetCmd = &cobra.Command{
 		}
 		submit, tx, _, err := cli.GenerateTransaction(ctx, parser, nil, &actions.CreateAsset{
 			Metadata: []byte(metadata),
+		}, factory)
+		if err != nil {
+			return err
+		}
+		if err := submit(ctx); err != nil {
+			return err
+		}
+		success, err := tcli.WaitForTransaction(ctx, tx.ID())
+		if err != nil {
+			return err
+		}
+		printStatus(tx.ID(), success)
+		return nil
+	},
+}
+
+var sequencerMsgCmd = &cobra.Command{
+	Use: "sequencer-msg",
+	RunE: func(*cobra.Command, []string) error {
+		ctx := context.Background()
+		_, _, factory, cli, tcli, err := defaultActor()
+		if err != nil {
+			return err
+		}
+
+		// // Add metadata to token
+		// promptText := promptui.Prompt{
+		// 	Label: "metadata (can be changed later)",
+		// 	Validate: func(input string) error {
+		// 		if len(input) > actions.MaxMetadataSize {
+		// 			return errors.New("input too large")
+		// 		}
+		// 		return nil
+		// 	},
+		// }
+		// metadata, err := promptText.Run()
+		// if err != nil {
+		// 	return err
+		// }
+
+		recipient, err := promptAddress("recipient")
+		if err != nil {
+			return err
+		}
+		// Confirm action
+		cont, err := promptContinue()
+		if !cont || err != nil {
+			return err
+		}
+
+		// Generate transaction
+		parser, err := tcli.Parser(ctx)
+		if err != nil {
+			return err
+		}
+		submit, tx, _, err := cli.GenerateTransaction(ctx, parser, nil, &actions.SequencerMsg{
+			Data:        []byte{0x00, 0x01, 0x02},
+			ChainId:     []byte{0x00},
+			FromAddress: recipient,
 		}, factory)
 		if err != nil {
 			return err

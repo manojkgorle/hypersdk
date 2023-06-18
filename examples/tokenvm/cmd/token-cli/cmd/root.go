@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/hypersdk/pebble"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/pebble"
+	"github.com/AnomalyFi/hypersdk/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -149,6 +149,7 @@ func init() {
 
 		createAssetCmd,
 		mintAssetCmd,
+		sequencerMsgCmd,
 		// burnAssetCmd,
 		// modifyAssetCmd,
 

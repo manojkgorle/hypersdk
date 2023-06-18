@@ -4,9 +4,9 @@
 package controller
 
 import (
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
 	ametrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -22,8 +22,9 @@ type metrics struct {
 	fillOrder   prometheus.Counter
 	closeOrder  prometheus.Counter
 
-	importAsset prometheus.Counter
-	exportAsset prometheus.Counter
+	importAsset  prometheus.Counter
+	exportAsset  prometheus.Counter
+	sequencerMsg prometheus.Counter
 }
 
 func newMetrics(gatherer ametrics.MultiGatherer) (*metrics, error) {
@@ -78,6 +79,11 @@ func newMetrics(gatherer ametrics.MultiGatherer) (*metrics, error) {
 			Name:      "export_asset",
 			Help:      "number of export asset actions",
 		}),
+		sequencerMsg: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: "actions",
+			Name:      "sequencer_msg",
+			Help:      "number of sequencer msg actions",
+		}),
 	}
 	r := prometheus.NewRegistry()
 	errs := wrappers.Errs{}
@@ -95,6 +101,7 @@ func newMetrics(gatherer ametrics.MultiGatherer) (*metrics, error) {
 
 		r.Register(m.importAsset),
 		r.Register(m.exportAsset),
+		r.Register(m.sequencerMsg),
 		gatherer.Register(consts.Name, r),
 	)
 	return m, errs.Err

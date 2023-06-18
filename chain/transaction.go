@@ -13,12 +13,12 @@ import (
 	smath "github.com/ava-labs/avalanchego/utils/math"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/emap"
-	"github.com/ava-labs/hypersdk/mempool"
-	"github.com/ava-labs/hypersdk/tstate"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/emap"
+	"github.com/AnomalyFi/hypersdk/mempool"
+	"github.com/AnomalyFi/hypersdk/tstate"
+	"github.com/AnomalyFi/hypersdk/utils"
 )
 
 var (
@@ -124,6 +124,11 @@ func (t *Transaction) ID() ids.ID { return t.id }
 func (t *Transaction) Expiry() int64 { return t.Base.Timestamp }
 
 func (t *Transaction) UnitPrice() uint64 { return t.Base.UnitPrice }
+
+func (t *Transaction) ModifyAction(act Action) (*Transaction, error) {
+	t.Action = act
+	return t, nil
+}
 
 // It is ok to have duplicate ReadKeys...the processor will skip them
 func (t *Transaction) StateKeys(stateMapping StateManager) [][]byte {

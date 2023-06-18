@@ -5,7 +5,9 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"reflect"
@@ -13,22 +15,26 @@ import (
 	"strings"
 	"time"
 
+	//"encoding/hex"
+
+	hconsts "github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/rpc"
+	"github.com/AnomalyFi/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/window"
 	runner "github.com/ava-labs/avalanche-network-runner/client"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/math"
-	hconsts "github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/rpc"
-	"github.com/ava-labs/hypersdk/utils"
-	"github.com/ava-labs/hypersdk/window"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
-	tutils "github.com/ava-labs/hypersdk/examples/tokenvm/utils"
+	//"github.com/celestiaorg/go-cnc"
+
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/actions"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/auth"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
+	trpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/rpc"
+	tutils "github.com/AnomalyFi/hypersdk/examples/tokenvm/utils"
 )
 
 var chainCmd = &cobra.Command{
@@ -411,6 +417,8 @@ var watchChainCmd = &cobra.Command{
 						if wt.SwapIn > 0 {
 							summaryStr += fmt.Sprintf(" | swap in: %s %s swap out: %s %s expiry: %d", valueString(outputAssetID, wt.SwapIn), assetString(outputAssetID), valueString(wt.AssetOut, wt.SwapOut), assetString(wt.AssetOut), wt.SwapExpiry)
 						}
+					case *actions.SequencerMsg:
+						summaryStr = fmt.Sprintf("data: %s", string(action.Data))
 					}
 				}
 				utils.Outf(
@@ -426,4 +434,22 @@ var watchChainCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+// decodeCelestiaData will decode the data retrieved from Celestia, this data
+// was previously posted from vm and contains the block height
+// with transaction index of the SubmitPFD transaction to the DA.
+func decodeCelestiaData(celestiaData []byte) (int64, uint32, error) {
+	buf := bytes.NewBuffer(celestiaData)
+	var height int64
+	err := binary.Read(buf, binary.BigEndian, &height)
+	if err != nil {
+		return 0, 0, fmt.Errorf("error deserializing height: %w", err)
+	}
+	var index uint32
+	err = binary.Read(buf, binary.BigEndian, &index)
+	if err != nil {
+		return 0, 0, fmt.Errorf("error deserializing index: %w", err)
+	}
+	return height, index, nil
 }

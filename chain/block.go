@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"time"
+	"reflect"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
@@ -21,11 +22,11 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/utils"
-	"github.com/ava-labs/hypersdk/window"
-	"github.com/ava-labs/hypersdk/workers"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/window"
+	"github.com/AnomalyFi/hypersdk/workers"
 )
 
 var (
@@ -341,6 +342,7 @@ func (b *StatelessBlock) verify(ctx context.Context, stateReady bool) error {
 		}
 		b.state = state
 	}
+	
 
 	// At any point after this, we may attempt to verify the block. We should be
 	// sure we are prepared to do so.
@@ -659,6 +661,10 @@ func (b *StatelessBlock) Accept(ctx context.Context) error {
 		return err
 	}
 
+	for _, tx := range b.Txs {
+		b.vm.Logger().Info("Accepted tx action data is:", zap.Stringer("type_of_action", reflect.TypeOf(tx.Action)))
+	}
+
 	// Set last accepted block
 	return b.SetLastAccepted(ctx)
 }
@@ -707,7 +713,6 @@ func (b *StatelessBlock) Timestamp() time.Time { return b.t }
 
 // State is used to verify txs in the mempool. It should never be written to.
 //
-// TODO: we should modify the interface here to only allow read-like messages
 func (b *StatelessBlock) State() (Database, error) {
 	if b.st == choices.Accepted {
 		return b.vm.State()
