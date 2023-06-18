@@ -141,6 +141,7 @@ func (cli *JSONRPCClient) Loan(
 	return resp.Amount, err
 }
 
+//TODO add more methods
 func (cli *JSONRPCClient) WaitForBalance(
 	ctx context.Context,
 	addr string,
