@@ -33,6 +33,8 @@ func (t *SequencerMsg) StateKeys(rauth chain.Auth, _ ids.ID) [][]byte {
 	return [][]byte{
 		// We always pay fees with the native asset (which is [ids.Empty])
 		storage.PrefixBalanceKey(t.FromAddress, ids.Empty),
+		t.ChainId,
+		t.Data,
 	}
 }
 
@@ -65,8 +67,8 @@ func UnmarshalSequencerMsg(p *codec.Packer, _ *warp.Message) (chain.Action, erro
 	var sequencermsg SequencerMsg
 	p.UnpackPublicKey(false, &sequencermsg.FromAddress)
 	//TODO need to correct this and check byte count
-	p.UnpackBytes(8, false, &sequencermsg.Data)
-	p.UnpackBytes(8, false, &sequencermsg.ChainId)
+	p.UnpackBytes(-1, true, &sequencermsg.Data)
+	p.UnpackBytes(-1, true, &sequencermsg.ChainId)
 	return &sequencermsg, p.Err()
 }
 
