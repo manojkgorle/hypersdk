@@ -7,17 +7,17 @@ import (
 	"context"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/utils"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/utils"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/challenge"
-	frpc "github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
-	tconsts "github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
-	tutils "github.com/ava-labs/hypersdk/examples/tokenvm/utils"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/challenge"
+	frpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
+	tconsts "github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
+	trpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/rpc"
+	tutils "github.com/AnomalyFi/hypersdk/examples/tokenvm/utils"
 )
 
 var keyCmd = &cobra.Command{

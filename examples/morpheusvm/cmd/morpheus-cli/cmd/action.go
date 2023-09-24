@@ -6,8 +6,8 @@ package cmd
 import (
 	"context"
 
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/actions"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/actions"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/consts"
 	"github.com/spf13/cobra"
 )
 

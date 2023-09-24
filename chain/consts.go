@@ -6,8 +6,8 @@ package chain
 import (
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/keys"
 	"github.com/ava-labs/avalanchego/utils/units"
-	"github.com/ava-labs/hypersdk/keys"
 )
 
 const (

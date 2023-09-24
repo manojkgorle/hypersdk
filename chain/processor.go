@@ -11,9 +11,9 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/trace"
 
-	"github.com/ava-labs/hypersdk/keys"
-	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/tstate"
+	"github.com/AnomalyFi/hypersdk/keys"
+	"github.com/AnomalyFi/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/tstate"
 )
 
 type fetchData struct {
@@ -152,6 +152,7 @@ func (p *Processor) Execute(
 		// TODO: parallel execution will greatly improve performance when actions
 		// start taking longer than a few ns (i.e. with hypersdk programs).
 		var warpVerified bool
+		var blockVerified = true
 		warpMsg, ok := p.blk.warpMessages[tx.ID()]
 		if ok {
 			select {
@@ -160,7 +161,15 @@ func (p *Processor) Execute(
 				return nil, nil, ctx.Err()
 			}
 		}
-		result, err := tx.Execute(ctx, feeManager, authCUs, txData.coldReads, txData.warmReads, sm, r, ts, t, ok && warpVerified)
+		//result, err := tx.Execute(ctx, feeManager, authCUs, txData.coldReads, txData.warmReads, sm, r, ts, t, ok && warpVerified)
+		if ok && tx.VerifyBlock {
+			select {
+			case blockVerified = <-warpMsg.verifiedRootsChan:
+			case <-ctx.Done():
+				return nil, nil, ctx.Err()
+			}
+		}
+		result, err := tx.Execute(ctx, feeManager, authCUs, txData.coldReads, txData.warmReads, sm, r, ts, t, ok && warpVerified && blockVerified)
 		if err != nil {
 			return nil, nil, err
 		}

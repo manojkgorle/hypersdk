@@ -13,15 +13,15 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/emap"
-	"github.com/ava-labs/hypersdk/keys"
-	"github.com/ava-labs/hypersdk/math"
-	"github.com/ava-labs/hypersdk/mempool"
-	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/tstate"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/emap"
+	"github.com/AnomalyFi/hypersdk/keys"
+	"github.com/AnomalyFi/hypersdk/math"
+	"github.com/AnomalyFi/hypersdk/mempool"
+	"github.com/AnomalyFi/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/tstate"
+	"github.com/AnomalyFi/hypersdk/utils"
 )
 
 var (
@@ -33,6 +33,7 @@ type Transaction struct {
 	Base        *Base         `json:"base"`
 	WarpMessage *warp.Message `json:"warpMessage"`
 	Action      Action        `json:"action"`
+	VerifyBlock bool          `json:"verifyBlock"`
 	Auth        Auth          `json:"auth"`
 
 	digest         []byte
@@ -53,11 +54,12 @@ type WarpResult struct {
 	VerifyErr error
 }
 
-func NewTx(base *Base, wm *warp.Message, act Action) *Transaction {
+func NewTx(base *Base, wm *warp.Message, act Action, verifyBlock bool) *Transaction {
 	return &Transaction{
 		Base:        base,
 		WarpMessage: wm,
 		Action:      act,
+		VerifyBlock: verifyBlock,
 	}
 }
 
@@ -72,9 +74,10 @@ func (t *Transaction) Digest() ([]byte, error) {
 	}
 	size := t.Base.Size() +
 		codec.BytesLen(warpBytes) +
-		consts.ByteLen + t.Action.Size()
+		consts.ByteLen + consts.BoolLen + t.Action.Size()
 	p := codec.NewWriter(size, consts.NetworkSizeLimit)
 	t.Base.Marshal(p)
+	p.PackBool(t.VerifyBlock)
 	p.PackBytes(warpBytes)
 	p.PackByte(actionID)
 	t.Action.Marshal(p)
@@ -590,6 +593,7 @@ func (t *Transaction) Marshal(p *codec.Packer) error {
 			return ErrWarpMessageNotInitialized
 		}
 	}
+	p.PackBool(t.VerifyBlock)
 	p.PackBytes(warpBytes)
 	p.PackByte(actionID)
 	t.Action.Marshal(p)
@@ -648,6 +652,9 @@ func UnmarshalTx(
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not unmarshal base", err)
 	}
+
+	verifyBlock := p.UnpackBool()
+
 	var warpBytes []byte
 	p.UnpackBytes(MaxWarpMessageSize, false, &warpBytes)
 	var warpMessage *warp.Message
@@ -702,6 +709,7 @@ func UnmarshalTx(
 	tx.Action = action
 	tx.WarpMessage = warpMessage
 	tx.Auth = auth
+	tx.VerifyBlock = verifyBlock
 	if err := p.Err(); err != nil {
 		return nil, p.Err()
 	}

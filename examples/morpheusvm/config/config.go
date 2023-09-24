@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/config"
+	"github.com/AnomalyFi/hypersdk/trace"
+	"github.com/AnomalyFi/hypersdk/vm"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/profiler"
-	"github.com/ava-labs/hypersdk/config"
-	"github.com/ava-labs/hypersdk/trace"
-	"github.com/ava-labs/hypersdk/vm"
 
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/utils"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/version"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/consts"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/utils"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/version"
 )
 
 var _ vm.Config = (*Config)(nil)

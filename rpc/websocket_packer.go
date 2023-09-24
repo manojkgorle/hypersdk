@@ -6,10 +6,10 @@ package rpc
 import (
 	"errors"
 
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
 )
 
 const (
@@ -21,6 +21,7 @@ func PackBlockMessage(b *chain.StatelessBlock) ([]byte, error) {
 	results := b.Results()
 	size := codec.BytesLen(b.Bytes()) + consts.IntLen + codec.CummSize(results) + chain.DimensionsLen
 	p := codec.NewWriter(size, consts.MaxInt)
+	p.PackID(b.ID())
 	p.PackBytes(b.Bytes())
 	mresults, err := chain.MarshalResults(results)
 	if err != nil {
@@ -34,30 +35,33 @@ func PackBlockMessage(b *chain.StatelessBlock) ([]byte, error) {
 func UnpackBlockMessage(
 	msg []byte,
 	parser chain.Parser,
-) (*chain.StatefulBlock, []*chain.Result, chain.Dimensions, error) {
+) (*chain.StatefulBlock, []*chain.Result, chain.Dimensions, *ids.ID, error) {
 	p := codec.NewReader(msg, consts.MaxInt)
+	var realId ids.ID
+	p.UnpackID(false, &realId)
+
 	var blkMsg []byte
 	p.UnpackBytes(-1, true, &blkMsg)
 	blk, err := chain.UnmarshalBlock(blkMsg, parser)
 	if err != nil {
-		return nil, nil, chain.Dimensions{}, err
+		return nil, nil, chain.Dimensions{}, nil, err
 	}
 	var resultsMsg []byte
 	p.UnpackBytes(-1, true, &resultsMsg)
 	results, err := chain.UnmarshalResults(resultsMsg)
 	if err != nil {
-		return nil, nil, chain.Dimensions{}, err
+		return nil, nil, chain.Dimensions{}, nil, err
 	}
 	pricesMsg := make([]byte, chain.DimensionsLen)
 	p.UnpackFixedBytes(chain.DimensionsLen, &pricesMsg)
 	prices, err := chain.UnpackDimensions(pricesMsg)
 	if err != nil {
-		return nil, nil, chain.Dimensions{}, err
+		return nil, nil, chain.Dimensions{}, nil, err
 	}
 	if !p.Empty() {
-		return nil, nil, chain.Dimensions{}, chain.ErrInvalidObject
+		return nil, nil, chain.Dimensions{}, nil, chain.ErrInvalidObject
 	}
-	return blk, results, prices, p.Err()
+	return blk, results, prices, &realId, p.Err()
 }
 
 // Could be a better place for these methods

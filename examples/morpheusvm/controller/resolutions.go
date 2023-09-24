@@ -6,13 +6,13 @@ package controller
 import (
 	"context"
 
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/genesis"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/storage"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/trace"
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/genesis"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/storage"
 )
 
 func (c *Controller) Genesis() *genesis.Genesis {

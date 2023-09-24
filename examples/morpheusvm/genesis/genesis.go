@@ -11,13 +11,13 @@ import (
 	"github.com/ava-labs/avalanchego/trace"
 	smath "github.com/ava-labs/avalanchego/utils/math"
 
-	"github.com/ava-labs/hypersdk/chain"
-	hconsts "github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/storage"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/utils"
-	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/vm"
+	"github.com/AnomalyFi/hypersdk/chain"
+	hconsts "github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/consts"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/storage"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/utils"
+	"github.com/AnomalyFi/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/vm"
 )
 
 var _ vm.Genesis = (*Genesis)(nil)

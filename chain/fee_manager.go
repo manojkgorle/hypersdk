@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/window"
 	"github.com/ava-labs/avalanchego/utils/math"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/window"
 )
 
 const (

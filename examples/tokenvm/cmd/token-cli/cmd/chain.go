@@ -7,11 +7,11 @@ package cmd
 import (
 	"context"
 
+	"github.com/AnomalyFi/hypersdk/chain"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/chain"
 	"github.com/spf13/cobra"
 
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
+	trpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/rpc"
 )
 
 var chainCmd = &cobra.Command{

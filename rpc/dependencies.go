@@ -6,12 +6,12 @@ package rpc
 import (
 	"context"
 
+	"github.com/AnomalyFi/hypersdk/chain"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/trace"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/hypersdk/chain"
 )
 
 type VM interface {
@@ -27,6 +27,7 @@ type VM interface {
 		txs []*chain.Transaction,
 	) (errs []error)
 	LastAcceptedBlock() *chain.StatelessBlock
+	LastL1Head() string
 	UnitPrices(context.Context) (chain.Dimensions, error)
 	GetOutgoingWarpMessage(ids.ID) (*warp.UnsignedMessage, error)
 	GetWarpSignatures(ids.ID) ([]*chain.WarpSignature, error)

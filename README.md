@@ -6,8 +6,8 @@
 </p>
 <p align="center">
   <a href="https://goreportcard.com/report/github.com/ava-labs/hypersdk"><img src="https://goreportcard.com/badge/github.com/ava-labs/hypersdk" /></a>
-  <a href="https://github.com/ava-labs/hypersdk/actions/workflows/hypersdk-unit-tests.yml"><img src="https://github.com/ava-labs/hypersdk/actions/workflows/hypersdk-unit-tests.yml/badge.svg" /></a>
-  <a href="https://github.com/ava-labs/hypersdk/actions/workflows/hypersdk-static-analysis.yml"><img src="https://github.com/ava-labs/hypersdk/actions/workflows/hypersdk-static-analysis.yml/badge.svg" /></a>
+  <a href="https://github.com/AnomalyFi/hypersdk/actions/workflows/hypersdk-unit-tests.yml"><img src="https://github.com/AnomalyFi/hypersdk/actions/workflows/hypersdk-unit-tests.yml/badge.svg" /></a>
+  <a href="https://github.com/AnomalyFi/hypersdk/actions/workflows/hypersdk-static-analysis.yml"><img src="https://github.com/AnomalyFi/hypersdk/actions/workflows/hypersdk-static-analysis.yml/badge.svg" /></a>
 <a href="./LICENSE" ><img src="https://img.shields.io/badge/License-Ecosystem-blue.svg" /></a>
 </p>
 
@@ -482,7 +482,7 @@ block production (which can lead to more rejected blocks), and avoids a prolonge
 readiness wait (`hypersdk` waits to mark itself as ready until it has seen a `ValidityWindow` of blocks).
 
 Looking ahead, support for continuous block production paves the way for the introduction
-of [chain/validator-driven actions](https://github.com/ava-labs/hypersdk/issues/336), which should
+of [chain/validator-driven actions](https://github.com/AnomalyFi/hypersdk/issues/336), which should
 be included on-chain every X seconds (like a price oracle update) regardless of how many user-submitted
 transactions are present.
 
@@ -990,7 +990,7 @@ _This is a collection of posts from the community about the `hypersdk` and how t
 
 ## Future Work
 _If you want to take the lead on any of these items, please
-[start a discussion](https://github.com/ava-labs/hypersdk/discussions) or reach
+[start a discussion](https://github.com/AnomalyFi/hypersdk/discussions) or reach
 out on the Avalanche Discord._
 
 * Use pre-specified state keys to process transactions in parallel (txs with no

@@ -6,10 +6,10 @@ package cli
 import (
 	"context"
 
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/rpc"
+	"github.com/AnomalyFi/hypersdk/utils"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/rpc"
-	"github.com/ava-labs/hypersdk/utils"
 )
 
 func (h *Handler) GenerateKey() error {

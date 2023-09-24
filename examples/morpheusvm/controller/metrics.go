@@ -4,9 +4,9 @@
 package controller
 
 import (
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/consts"
 	ametrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

@@ -7,9 +7,9 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
 	"github.com/stretchr/testify/require"
 )
 

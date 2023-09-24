@@ -6,11 +6,11 @@ package cmd
 import (
 	"context"
 
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/consts"
+	brpc "github.com/AnomalyFi/hypersdk/examples/morpheusvm/rpc"
+	"github.com/AnomalyFi/hypersdk/utils"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
-	brpc "github.com/ava-labs/hypersdk/examples/morpheusvm/rpc"
-	"github.com/ava-labs/hypersdk/utils"
 	"github.com/spf13/cobra"
 )
 

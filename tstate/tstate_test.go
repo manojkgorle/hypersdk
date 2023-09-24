@@ -7,13 +7,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/AnomalyFi/hypersdk/trace"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/avalanchego/x/merkledb"
-	"github.com/ava-labs/hypersdk/trace"
 
 	"github.com/stretchr/testify/require"
 )

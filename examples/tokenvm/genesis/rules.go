@@ -4,8 +4,8 @@
 package genesis
 
 import (
+	"github.com/AnomalyFi/hypersdk/chain"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/chain"
 )
 
 var _ chain.Rules = (*Rules)(nil)

@@ -19,9 +19,9 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/keys"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/keys"
 )
 
 // compactionOffset is used to randomize the height that we compact

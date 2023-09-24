@@ -7,10 +7,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/consts"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/consts"
 	"go.uber.org/zap"
 )
 

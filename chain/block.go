@@ -21,12 +21,14 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/utils"
-	"github.com/ava-labs/hypersdk/window"
-	"github.com/ava-labs/hypersdk/workers"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/window"
+	"github.com/AnomalyFi/hypersdk/workers"
+
+	ethhex "github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 var (
@@ -41,6 +43,8 @@ type StatefulBlock struct {
 	Hght   uint64 `json:"height"`
 
 	Txs []*Transaction `json:"txs"`
+
+	L1Head string `json:"l1_head"`
 
 	// StateRoot is the root of the post-execution state
 	// of [Prnt].
@@ -75,15 +79,21 @@ func (b *StatefulBlock) ID() (ids.ID, error) {
 // warpJob is used to signal to a listner that a *warp.Message has been
 // verified.
 type warpJob struct {
-	msg          *warp.Message
-	signers      int
-	verifiedChan chan bool
-	verified     bool
-	warpNum      int
+	msg               *warp.Message
+	signers           int
+	verifiedChan      chan bool
+	verified          bool
+	requiresBlock     bool
+	verifiedRootsChan chan bool
+	verifiedRoots     bool
+	warpNum           int
 }
 
 func NewGenesisBlock(root ids.ID) *StatefulBlock {
+	//b, _ := new(big.Int).SetString("2", 16)
+	//num := (ethhex.Big)(*b)
 	return &StatefulBlock{
+		L1Head: "2",
 		// We set the genesis block timestamp to be after the ProposerVM fork activation.
 		//
 		// This prevents an issue (when using millisecond timestamps) during ProposerVM activation
@@ -99,6 +109,10 @@ func NewGenesisBlock(root ids.ID) *StatefulBlock {
 	}
 }
 
+type ETHBlock struct {
+	Number *ethhex.Big
+}
+
 // Stateless is defined separately from "Block"
 // in case external packages needs use the stateful block
 // without mocking VM or parent block
@@ -111,10 +125,12 @@ type StatelessBlock struct {
 	bytes  []byte
 	txsSet set.Set[ids.ID]
 
-	warpMessages map[ids.ID]*warpJob
-	containsWarp bool // this allows us to avoid allocating a map when we build
-	bctx         *block.Context
-	vdrState     validators.State
+	warpMessages   map[ids.ID]*warpJob
+	containsWarp   bool // this allows us to avoid allocating a map when we build
+	containsVerify bool // this allows us to avoid allocating a map when we build
+
+	bctx     *block.Context
+	vdrState validators.State
 
 	results    []*Result
 	feeManager *FeeManager
@@ -131,6 +147,7 @@ func NewBlock(vm VM, parent snowman.Block, tmstp int64) *StatelessBlock {
 			Prnt:   parent.ID(),
 			Tmstmp: tmstp,
 			Hght:   parent.Height() + 1,
+			L1Head: vm.LastL1Head(),
 		},
 		vm: vm,
 		st: choices.Processing,
@@ -209,11 +226,16 @@ func (b *StatelessBlock) populateTxs(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
+			if tx.VerifyBlock {
+				b.containsVerify = true
+			}
 			b.warpMessages[tx.ID()] = &warpJob{
-				msg:          tx.WarpMessage,
-				signers:      signers,
-				verifiedChan: make(chan bool, 1),
-				warpNum:      len(b.warpMessages),
+				msg:               tx.WarpMessage,
+				signers:           signers,
+				requiresBlock:     b.containsVerify,
+				verifiedChan:      make(chan bool, 1),
+				verifiedRootsChan: make(chan bool, 1),
+				warpNum:           len(b.warpMessages),
 			}
 			b.containsWarp = true
 		}
@@ -288,6 +310,9 @@ func (b *StatelessBlock) initializeBuilt(
 		b.txsSet.Add(tx.ID())
 		if tx.WarpMessage != nil {
 			b.containsWarp = true
+		}
+		if tx.VerifyBlock {
+			b.containsVerify = true
 		}
 	}
 	return nil
@@ -433,6 +458,33 @@ func (b *StatelessBlock) verifyWarpMessage(ctx context.Context, r Rules, msg *wa
 	return true
 }
 
+// TODO need to test
+// verifyWarpBlock will attempt to verify a given warp block
+func (b *StatelessBlock) verifyWarpBlock(ctx context.Context, r Rules, msg *warp.Message) (bool, error) {
+	block, err := UnmarshalWarpBlock(msg.UnsignedMessage.Payload)
+
+	//TODO it is failing right here
+
+	parentWarpBlock, err := b.vm.GetStatelessBlock(ctx, block.Prnt)
+	if err != nil {
+		b.vm.Logger().Warn("could not get parent", zap.Stringer("id", block.Prnt), zap.Error(err))
+		return false, err
+	} else {
+		blockRoot, err := b.vm.GetStatelessBlock(ctx, block.StateRoot)
+		if err != nil {
+			b.vm.Logger().Debug("could not get block", zap.Stringer("id", block.StateRoot), zap.Error(err))
+			return false, err
+		} else {
+			if blockRoot.Timestamp().Unix() < parentWarpBlock.Timestamp().Unix() {
+				b.vm.Logger().Warn("Too young of block", zap.Error(ErrTimestampTooEarly))
+				return false, err
+			}
+		}
+	}
+
+	return true, nil
+}
+
 // innerVerify executes the block on top of the provided [VerifyContext].
 //
 // Invariants:
@@ -542,6 +594,15 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 				if b.vm.IsBootstrapped() && !invalidWarpResult {
 					start := time.Now()
 					verified := b.verifyWarpMessage(ctx, r, msg.msg)
+					if msg.requiresBlock && verified {
+						//TODO might need to do something with this error
+						verifiedBlockRoots, _ := b.verifyWarpBlock(ctx, r, msg.msg)
+						msg.verifiedRootsChan <- verifiedBlockRoots
+						msg.verifiedRoots = verifiedBlockRoots
+						if blockVerified != verifiedBlockRoots {
+							invalidWarpResult = true
+						}
+					}
 					msg.verifiedChan <- verified
 					msg.verified = verified
 					log.Info(
@@ -562,6 +623,9 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 					// block) to avoid doing extra work.
 					msg.verifiedChan <- blockVerified
 					msg.verified = blockVerified
+					//TODO might need to fix this to verify
+					msg.verifiedRootsChan <- blockVerified
+					msg.verifiedRoots = blockVerified
 				}
 			}
 		}()
@@ -975,7 +1039,7 @@ func (b *StatelessBlock) FeeManager() *FeeManager {
 func (b *StatefulBlock) Marshal() ([]byte, error) {
 	size := consts.IDLen + consts.Uint64Len + consts.Uint64Len +
 		consts.Uint64Len + window.WindowSliceSize +
-		consts.IntLen + codec.CummSize(b.Txs) +
+		consts.IntLen + codec.CummSize(b.Txs) + consts.IDLen +
 		consts.IDLen + consts.Uint64Len + consts.Uint64Len
 
 	p := codec.NewWriter(size, consts.NetworkSizeLimit)
@@ -992,6 +1056,14 @@ func (b *StatefulBlock) Marshal() ([]byte, error) {
 		}
 		b.authCounts[tx.Auth.GetTypeID()]++
 	}
+
+	// head, err := b.L1Head.Number.MarshalText()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// p.PackBytes(head)
+
+	p.PackString(b.L1Head)
 
 	p.PackID(b.StateRoot)
 	p.PackUint64(uint64(b.WarpResults))
@@ -1027,6 +1099,23 @@ func UnmarshalBlock(raw []byte, parser Parser) (*StatefulBlock, error) {
 		b.Txs = append(b.Txs, tx)
 		b.authCounts[tx.Auth.GetTypeID()]++
 	}
+
+	// var (
+	// 	headBytes []byte
+	// 	num       *ethhex.Big
+	// )
+
+	// bytes := make([]byte, dimensionStateLen*FeeDimensions)
+
+	b.L1Head = p.UnpackString(false)
+
+	// num.UnmarshalText(headBytes)
+
+	// head := ETHBlock{
+	// 	Number: num,
+	// }
+
+	// b.L1Head = head
 
 	p.UnpackID(false, &b.StateRoot)
 	b.WarpResults = set.Bits64(p.UnpackUint64(false))

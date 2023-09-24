@@ -4,9 +4,9 @@
 package utils
 
 import (
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
 
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/consts"
 )
 
 func Address(pk ed25519.PublicKey) string {

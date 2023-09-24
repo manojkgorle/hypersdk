@@ -34,7 +34,7 @@ var (
 		))
 )
 
-// go test -v -run ^TestMeterInsufficientBalance$ github.com/ava-labs/hypersdk/x/programs/runtime
+// go test -v -run ^TestMeterInsufficientBalance$ github.com/AnomalyFi/hypersdk/x/programs/runtime
 func TestMeterInsufficientBalance(t *testing.T) {
 	require := require.New(t)
 	ctrl := gomock.NewController(t)

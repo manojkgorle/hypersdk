@@ -4,7 +4,7 @@
 package cli
 
 import (
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
 )
 
 type Controller interface {

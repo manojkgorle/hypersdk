@@ -8,10 +8,10 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/genesis"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/orderbook"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/utils"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/genesis"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/orderbook"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/utils"
 )
 
 type JSONRPCServer struct {

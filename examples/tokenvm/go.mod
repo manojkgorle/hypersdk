@@ -1,11 +1,11 @@
-module github.com/ava-labs/hypersdk/examples/tokenvm
+module github.com/AnomalyFi/hypersdk/examples/tokenvm
 
 go 1.20
 
 require (
+	github.com/AnomalyFi/hypersdk v0.0.0-00010101000000-000000000000
 	github.com/ava-labs/avalanche-network-runner v1.7.2
 	github.com/ava-labs/avalanchego v1.10.10
-	github.com/ava-labs/hypersdk v0.0.1
 	github.com/fatih/color v1.13.0
 	github.com/onsi/ginkgo/v2 v2.8.1
 	github.com/onsi/gomega v1.26.0
@@ -158,8 +158,9 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
+	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/ava-labs/hypersdk => ../../
+replace github.com/AnomalyFi/hypersdk => ../../

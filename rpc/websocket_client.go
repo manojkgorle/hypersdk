@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/pubsub"
+	"github.com/AnomalyFi/hypersdk/utils"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/pubsub"
-	"github.com/ava-labs/hypersdk/utils"
 	"github.com/gorilla/websocket"
 )
 
@@ -141,14 +141,14 @@ func (c *WebSocketClient) RegisterBlocks() error {
 func (c *WebSocketClient) ListenBlock(
 	ctx context.Context,
 	parser chain.Parser,
-) (*chain.StatefulBlock, []*chain.Result, chain.Dimensions, error) {
+) (*chain.StatefulBlock, []*chain.Result, chain.Dimensions, *ids.ID, error) {
 	select {
 	case msg := <-c.pendingBlocks:
 		return UnpackBlockMessage(msg, parser)
 	case <-c.readStopped:
-		return nil, nil, chain.Dimensions{}, c.err
+		return nil, nil, chain.Dimensions{}, nil, c.err
 	case <-ctx.Done():
-		return nil, nil, chain.Dimensions{}, ctx.Err()
+		return nil, nil, chain.Dimensions{}, nil, ctx.Err()
 	}
 }
 

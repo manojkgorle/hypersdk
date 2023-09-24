@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/consts"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/ava-labs/hypersdk/consts"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )

@@ -4,8 +4,8 @@
 package config
 
 import (
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/utils"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/utils"
 )
 
 type Config struct {

@@ -6,8 +6,8 @@ package rpc
 import (
 	"context"
 
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
 )
 
 type Manager interface {

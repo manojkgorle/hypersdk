@@ -6,9 +6,9 @@ package chain
 import (
 	"fmt"
 
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
 )
 
 const BaseSize = consts.Uint64Len*2 + consts.IDLen

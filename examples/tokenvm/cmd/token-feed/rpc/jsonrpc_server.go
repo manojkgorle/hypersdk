@@ -6,8 +6,8 @@ package rpc
 import (
 	"net/http"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-feed/manager"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/utils"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-feed/manager"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/utils"
 )
 
 type JSONRPCServer struct {
