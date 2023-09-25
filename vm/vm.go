@@ -763,7 +763,7 @@ func (vm *VM) buildBlock(ctx context.Context, blockContext *smblock.Context) (sn
 	}
 	blk, err := chain.BuildBlock(ctx, vm, preferredBlk, blockContext)
 	if err != nil {
-		vm.snowCtx.Log.Warn("BuildBlock failed", zap.Error(err))
+		vm.snowCtx.Log.Info("BuildBlock failed", zap.Error(err))
 		return nil, err
 	}
 	vm.parsedBlocks.Put(blk.ID(), blk)
