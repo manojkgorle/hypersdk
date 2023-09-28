@@ -11,16 +11,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/pubsub"
+	"github.com/AnomalyFi/hypersdk/rpc"
+	"github.com/AnomalyFi/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/window"
 	runner "github.com/ava-labs/avalanche-network-runner/client"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/units"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/pubsub"
-	"github.com/ava-labs/hypersdk/rpc"
-	"github.com/ava-labs/hypersdk/utils"
-	"github.com/ava-labs/hypersdk/window"
 	"gopkg.in/yaml.v2"
 )
 
@@ -222,7 +222,7 @@ func (h *Handler) WatchChain(hideTxs bool, getParser func(string, uint32, ids.ID
 		tpsWindow         = window.Window{}
 	)
 	for ctx.Err() == nil {
-		blk, results, prices, err := scli.ListenBlock(ctx, parser)
+		blk, results, prices, realId, err := scli.ListenBlock(ctx, parser)
 		if err != nil {
 			return err
 		}
@@ -249,10 +249,12 @@ func (h *Handler) WatchChain(hideTxs bool, getParser func(string, uint32, ids.ID
 			runningDuration := time.Since(start)
 			tpsDivisor := math.Min(window.WindowSize, runningDuration.Seconds())
 			utils.Outf(
-				"{{green}}height:{{/}}%d {{green}}txs:{{/}}%d {{green}}root:{{/}}%s {{green}}size:{{/}}%.2fKB {{green}}units consumed:{{/}} [%s] {{green}}unit prices:{{/}} [%s] [{{green}}TPS:{{/}}%.2f {{green}}latency:{{/}}%dms {{green}}gap:{{/}}%dms]\n",
+				"{{green}}height:{{/}}%d l1head:{{/}}%s {{green}}txs:{{/}}%d {{green}}root:{{/}}%s {{green}}blockId:{{/}}%s {{green}}size:{{/}}%.2fKB {{green}}units consumed:{{/}} [%s] {{green}}unit prices:{{/}} [%s] [{{green}}TPS:{{/}}%.2f {{green}}latency:{{/}}%dms {{green}}gap:{{/}}%dms]\n",
 				blk.Hght,
+				blk.L1Head,
 				len(blk.Txs),
 				blk.StateRoot,
+				realId,
 				float64(blk.Size())/units.KiB,
 				ParseDimensions(consumed),
 				ParseDimensions(prices),
@@ -262,10 +264,12 @@ func (h *Handler) WatchChain(hideTxs bool, getParser func(string, uint32, ids.ID
 			)
 		} else {
 			utils.Outf(
-				"{{green}}height:{{/}}%d {{green}}txs:{{/}}%d {{green}}root:{{/}}%s {{green}}size:{{/}}%.2fKB {{green}}units consumed:{{/}} [%s] {{green}}unit prices:{{/}} [%s]\n",
+				"{{green}}height:{{/}}%d l1head:{{/}}%s {{green}}txs:{{/}}%d {{green}}root:{{/}}%s {{green}}blockId:{{/}}%s {{green}}size:{{/}}%.2fKB {{green}}units consumed:{{/}} [%s] {{green}}unit prices:{{/}} [%s]\n",
 				blk.Hght,
+				blk.L1Head,
 				len(blk.Txs),
 				blk.StateRoot,
+				realId,
 				float64(blk.Size())/units.KiB,
 				ParseDimensions(consumed),
 				ParseDimensions(prices),

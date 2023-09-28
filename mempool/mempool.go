@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/eheap"
+	"github.com/AnomalyFi/hypersdk/list"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/trace"
 	"github.com/ava-labs/avalanchego/utils/math"
 	"github.com/ava-labs/avalanchego/utils/set"
-	"github.com/ava-labs/hypersdk/eheap"
-	"github.com/ava-labs/hypersdk/list"
 	"go.opentelemetry.io/otel/attribute"
 )
 

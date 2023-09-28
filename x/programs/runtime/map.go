@@ -10,8 +10,8 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"go.uber.org/zap"
 
+	"github.com/AnomalyFi/hypersdk/x/programs/utils"
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/ava-labs/hypersdk/x/programs/utils"
 )
 
 const (

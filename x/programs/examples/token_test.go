@@ -33,7 +33,7 @@ var (
 		))
 )
 
-// go test -v -timeout 30s -run ^TestTokenProgram$ github.com/ava-labs/hypersdk/x/programs/examples
+// go test -v -timeout 30s -run ^TestTokenProgram$ github.com/AnomalyFi/hypersdk/x/programs/examples
 func TestTokenProgram(t *testing.T) {
 	require := require.New(t)
 	program := NewToken(log, tokenProgramBytes, maxGas, costMap)
@@ -41,7 +41,7 @@ func TestTokenProgram(t *testing.T) {
 	require.NoError(err)
 }
 
-// go test -v -benchmem -run=^$ -bench ^BenchmarkTokenProgram$ github.com/ava-labs/hypersdk/x/programs/examples -memprofile benchvset.mem -cpuprofile benchvset.cpu
+// go test -v -benchmem -run=^$ -bench ^BenchmarkTokenProgram$ github.com/AnomalyFi/hypersdk/x/programs/examples -memprofile benchvset.mem -cpuprofile benchvset.cpu
 func BenchmarkTokenProgram(b *testing.B) {
 	require := require.New(b)
 	program := NewToken(log, tokenProgramBytes, maxGas, costMap)

@@ -12,8 +12,8 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/utils"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/hypersdk/utils"
 	"github.com/pkg/browser"
 	"gopkg.in/yaml.v2"
 )

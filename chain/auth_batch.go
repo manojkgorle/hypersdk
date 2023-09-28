@@ -4,8 +4,8 @@
 package chain
 
 import (
+	"github.com/AnomalyFi/hypersdk/workers"
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/ava-labs/hypersdk/workers"
 )
 
 const authWorkerBacklog = 16_384

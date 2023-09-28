@@ -6,9 +6,10 @@ package emap
 import (
 	"sync"
 
+	"github.com/AnomalyFi/hypersdk/heap"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/set"
-	"github.com/AnomalyFi/hypersdk/heap"
+
 )
 
 type bucket struct {

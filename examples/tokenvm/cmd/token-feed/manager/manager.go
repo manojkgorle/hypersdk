@@ -9,19 +9,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/actions"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/auth"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-feed/config"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
+	trpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/rpc"
+	tutils "github.com/AnomalyFi/hypersdk/examples/tokenvm/utils"
+	"github.com/AnomalyFi/hypersdk/pubsub"
+	"github.com/AnomalyFi/hypersdk/rpc"
+	"github.com/AnomalyFi/hypersdk/utils"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/timer"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-feed/config"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
-	tutils "github.com/ava-labs/hypersdk/examples/tokenvm/utils"
-	"github.com/ava-labs/hypersdk/pubsub"
-	"github.com/ava-labs/hypersdk/rpc"
-	"github.com/ava-labs/hypersdk/utils"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
@@ -125,7 +125,7 @@ func (m *Manager) Run(ctx context.Context) error {
 		}
 		for ctx.Err() == nil {
 			// Listen for blocks
-			blk, results, _, err := scli.ListenBlock(ctx, parser)
+			blk, results, _, _, err := scli.ListenBlock(ctx, parser)
 			if err != nil {
 				m.log.Warn("unable to listen for blocks", zap.Error(err))
 				break

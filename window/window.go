@@ -6,8 +6,8 @@ package window
 import (
 	"encoding/binary"
 
-	"github.com/ava-labs/avalanchego/utils/math"
 	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/ava-labs/avalanchego/utils/math"
 )
 
 const (

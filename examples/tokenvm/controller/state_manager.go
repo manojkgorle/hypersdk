@@ -4,8 +4,8 @@
 package controller
 
 import (
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/AnomalyFi/hypersdk/examples/tokenvm/storage"
+	"github.com/ava-labs/avalanchego/ids"
 )
 
 type StateManager struct{}

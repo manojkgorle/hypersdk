@@ -14,7 +14,7 @@ import (
 //go:embed testdata/pokemon.wasm
 var pokemonProgramBytes []byte
 
-// go test -v -timeout 30s -run ^TestPokemonProgram$ github.com/ava-labs/hypersdk/x/programs/examples
+// go test -v -timeout 30s -run ^TestPokemonProgram$ github.com/AnomalyFi/hypersdk/x/programs/examples
 func TestPokemonProgram(t *testing.T) {
 	require := require.New(t)
 	program := NewPokemon(log, pokemonProgramBytes, maxGas, costMap)

@@ -7,7 +7,7 @@ import (
 	"context"
 	"runtime/debug"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-wallet/backend"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-wallet/backend"
 
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/runtime"

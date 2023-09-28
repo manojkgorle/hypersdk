@@ -220,7 +220,7 @@ func (cli *JSONRPCClient) GenerateTransactionManual(
 
 	// Build transaction
 	actionRegistry, authRegistry := parser.Registry()
-	tx := chain.NewTx(base, wm, action)
+	tx := chain.NewTx(base, wm, action, false)
 	tx, err := tx.Sign(authFactory, actionRegistry, authRegistry)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: failed to sign transaction", err)
@@ -343,4 +343,30 @@ func (cli *JSONRPCClient) GenerateAggregateWarpSignature(
 		return nil, 0, 0, fmt.Errorf("%w: failed to generate warp message", err)
 	}
 	return message, weight, signatureWeight, nil
+}
+
+func (cli *JSONRPCClient) GatherWarpSignatureEVMInfo(
+	ctx context.Context,
+	txID ids.ID,
+) (*warp.UnsignedMessage, map[ids.ID][]byte, []*warp.Validator, uint64, error) {
+	unsignedMessage, validators, signatures, err := cli.GetWarpSignatures(ctx, txID)
+	if err != nil {
+		return nil, nil, nil, 0, fmt.Errorf("%w: failed to fetch warp signatures", err)
+	}
+
+	// Get canonical validator ordering to generate signature bit set
+	canonicalValidators, weight, err := getCanonicalValidatorSet(ctx, validators)
+	if err != nil {
+		return nil, nil, nil, 0, fmt.Errorf("%w: failed to get canonical validator set", err)
+	}
+
+	// Generate map of bls.PublicKey => Signature
+	signatureMap := map[ids.ID][]byte{}
+	for _, signature := range signatures {
+		// Convert to hash for easy comparison (could just as easily store the raw
+		// public key but that would involve a number of memory copies)
+		signatureMap[utils.ToID(signature.PublicKey)] = signature.Signature
+	}
+
+	return unsignedMessage, signatureMap, canonicalValidators, weight, nil
 }

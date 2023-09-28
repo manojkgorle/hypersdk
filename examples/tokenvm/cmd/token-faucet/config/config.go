@@ -3,7 +3,7 @@
 
 package config
 
-import "github.com/ava-labs/hypersdk/crypto/ed25519"
+import "github.com/AnomalyFi/hypersdk/crypto/ed25519"
 
 type Config struct {
 	HTTPHost string `json:"host"`

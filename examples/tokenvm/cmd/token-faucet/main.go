@@ -14,15 +14,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-faucet/config"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-faucet/manager"
+	frpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
+	tutils "github.com/AnomalyFi/hypersdk/examples/tokenvm/utils"
+	"github.com/AnomalyFi/hypersdk/server"
+	"github.com/AnomalyFi/hypersdk/utils"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/config"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/manager"
-	frpc "github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
-	tutils "github.com/ava-labs/hypersdk/examples/tokenvm/utils"
-	"github.com/ava-labs/hypersdk/server"
-	"github.com/ava-labs/hypersdk/utils"
 	"go.uber.org/zap"
 )
 

@@ -6,8 +6,8 @@ package pubsub
 import (
 	"time"
 
-	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/ava-labs/avalanchego/utils/units"
 )
 
 const (

@@ -3,7 +3,7 @@
 
 package codec
 
-import "github.com/ava-labs/hypersdk/consts"
+import "github.com/AnomalyFi/hypersdk/consts"
 
 type SizeType interface {
 	Size() int

@@ -6,9 +6,9 @@ package vm
 import (
 	"context"
 
+	"github.com/AnomalyFi/hypersdk/chain"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	"github.com/AnomalyFi/hypersdk/chain"
 	"go.uber.org/zap"
 )
 
