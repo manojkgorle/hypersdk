@@ -125,5 +125,5 @@ archives:
 
 release:
   github:
-    owner: ava-labs
+    owner: AnomalyFi
     name: hypersdk
