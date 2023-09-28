@@ -16,9 +16,9 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/x/merkledb"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/workers"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/workers"
 )
 
 type (
@@ -45,6 +45,7 @@ type VM interface {
 
 	IsBootstrapped() bool
 	LastAcceptedBlock() *StatelessBlock
+	LastL1Head() string
 	GetStatelessBlock(context.Context, ids.ID) (*StatelessBlock, error)
 
 	GetVerifyContext(ctx context.Context, blockHeight uint64, parent ids.ID) (VerifyContext, error)

@@ -10,15 +10,15 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/state"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	smath "github.com/ava-labs/avalanchego/utils/math"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/state"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/utils"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/utils"
 )
 
 type ReadState func(context.Context, [][]byte) ([][]byte, []error)

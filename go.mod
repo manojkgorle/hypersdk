@@ -1,4 +1,4 @@
-module github.com/ava-labs/hypersdk
+module github.com/AnomalyFi/hypersdk
 
 go 1.20
 
@@ -7,6 +7,7 @@ require (
 	github.com/ava-labs/avalanche-network-runner v1.7.2
 	github.com/ava-labs/avalanchego v1.10.10
 	github.com/cockroachdb/pebble v0.0.0-20230224221607-fccb83b60d5c
+	github.com/ethereum/go-ethereum v1.12.0
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/rpc v1.2.0
@@ -50,7 +51,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/dop251/goja v0.0.0-20230605162241-28ee0ee714f3 // indirect
-	github.com/ethereum/go-ethereum v1.12.0 // indirect
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08 // indirect
@@ -141,7 +141,10 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
+	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/AnomalyFi/hypersdk => /
 
 replace github.com/tetratelabs/wazero => github.com/ava-labs/wazero v0.0.2-hypersdk

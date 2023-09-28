@@ -19,8 +19,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/keys"
-	"github.com/ava-labs/hypersdk/tstate"
+	"github.com/AnomalyFi/hypersdk/keys"
+	"github.com/AnomalyFi/hypersdk/tstate"
 )
 
 const (
@@ -57,6 +57,7 @@ func HandlePreExecute(log logging.Logger, err error) bool {
 	}
 }
 
+// TODO this will be modified to add the L1 Head
 func BuildBlock(
 	ctx context.Context,
 	vm VM,
@@ -148,7 +149,7 @@ func BuildBlock(
 
 		// Prefetch all transactions
 		//
-		// TODO: unify logic with https://github.com/ava-labs/hypersdk/blob/4e10b911c3cd88e0ccd8d9de5210515b1d3a3ac4/chain/processor.go#L44-L79
+		// TODO: unify logic with https://github.com/AnomalyFi/hypersdk/blob/4e10b911c3cd88e0ccd8d9de5210515b1d3a3ac4/chain/processor.go#L44-L79
 		var (
 			readyTxs  = make(chan *txData, len(txs))
 			stopIndex = -1
@@ -322,6 +323,7 @@ func BuildBlock(
 			// We wait as long as possible to verify the signature to ensure we don't
 			// spend unnecessary time on an invalid tx.
 			var warpErr error
+			var verifyError error
 			if next.WarpMessage != nil {
 				// We do not check the validity of [SourceChainID] because a VM could send
 				// itself a message to trigger a chain upgrade.
@@ -340,6 +342,38 @@ func BuildBlock(
 						zap.Stringer("txID", next.ID()),
 						zap.Error(warpErr),
 					)
+				}
+				if next.VerifyBlock && warpErr == nil {
+					fmt.Println("WE GOT INSIDE Builder")
+					block, err := UnmarshalWarpBlock(next.WarpMessage.UnsignedMessage.Payload)
+
+					//TODO panic: runtime error: invalid memory address or nil pointer dereference.
+					// We cant get this block and then we compare it to the parent which causes issues
+					parentWarpBlock, err := vm.GetStatelessBlock(ctx, block.Prnt)
+					if err != nil {
+						log.Warn("could not get parent", zap.Stringer("id", block.Prnt), zap.Error(err))
+						verifyError = err
+					} else {
+						blockRoot, err := vm.GetStatelessBlock(ctx, block.StateRoot)
+						if err != nil {
+							log.Debug("could not get block", zap.Stringer("id", block.StateRoot), zap.Error(err))
+							verifyError = err
+						} else {
+							if blockRoot.Timestamp().Unix() < parentWarpBlock.Timestamp().Unix() {
+								log.Warn("Too young of block", zap.Error(ErrTimestampTooEarly))
+								verifyError = ErrTimestampTooEarly
+							}
+						}
+					}
+
+					if verifyError != nil {
+						log.Warn(
+							"block verification failed",
+							zap.Stringer("txID", next.ID()),
+							zap.Error(verifyError),
+						)
+					}
+
 				}
 			}
 
@@ -379,7 +413,7 @@ func BuildBlock(
 				r,
 				ts,
 				nextTime,
-				next.WarpMessage != nil && warpErr == nil,
+				next.WarpMessage != nil && warpErr == nil && verifyError == nil,
 			)
 			if err != nil {
 				// Returning an error here should be avoided at all costs (can be a DoS). Rather,
@@ -399,7 +433,7 @@ func BuildBlock(
 			}
 			results = append(results, result)
 			if next.WarpMessage != nil {
-				if warpErr == nil {
+				if warpErr == nil && verifyError == nil {
 					// Add a bit if the warp message was verified
 					b.WarpResults.Add(uint(warpCount))
 				}

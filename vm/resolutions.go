@@ -18,10 +18,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/builder"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/gossiper"
-	"github.com/ava-labs/hypersdk/workers"
+	"github.com/AnomalyFi/hypersdk/builder"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/gossiper"
+	"github.com/AnomalyFi/hypersdk/workers"
 )
 
 var (
@@ -71,6 +71,11 @@ func (vm *VM) Rules(t int64) chain.Rules {
 
 func (vm *VM) LastAcceptedBlock() *chain.StatelessBlock {
 	return vm.lastAccepted
+}
+
+func (vm *VM) LastL1Head() string {
+	// var f = <-vm.subCh
+	return vm.L1Head
 }
 
 func (vm *VM) IsBootstrapped() bool {
