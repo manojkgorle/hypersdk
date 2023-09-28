@@ -3,6 +3,7 @@ module github.com/AnomalyFi/hypersdk/examples/morpheusvm
 go 1.20
 
 require (
+	github.com/AnomalyFi/hypersdk v0.0.0-00010101000000-000000000000
 	github.com/ava-labs/avalanche-network-runner v1.7.2
 	github.com/ava-labs/avalanchego v1.10.10
 	github.com/ava-labs/hypersdk v0.0.1
@@ -149,4 +150,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/ava-labs/hypersdk => ../../
+replace github.com/AnomalyFi/hypersdk => ../../
