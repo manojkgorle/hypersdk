@@ -128,7 +128,7 @@ type VM struct {
 	ready chan struct{}
 	stop  chan struct{}
 
-	subCh chan string
+	subCh chan chain.ETHBlock
 
 	L1Head string
 	mu     sync.Mutex
@@ -161,7 +161,7 @@ func (vm *VM) Initialize(
 	vm.ready = make(chan struct{})
 	vm.stop = make(chan struct{})
 
-	vm.subCh = make(chan string)
+	vm.subCh = make(chan chain.ETHBlock)
 
 	gatherer := ametrics.NewMultiGatherer()
 	if err := vm.snowCtx.Metrics.Register(gatherer); err != nil {
@@ -403,15 +403,6 @@ func (vm *VM) Initialize(
 	go vm.gossiper.Run(gossipSender)
 
 	go vm.ETHL1HeadSubscribe()
-
-	// Start a goroutine to continuously update the lastValue.
-	go func() {
-		for v := range vm.subCh {
-			vm.mu.Lock()
-			vm.L1Head = v
-			vm.mu.Unlock()
-		}
-	}()
 
 	// Wait until VM is ready and then send a state sync message to engine
 	go vm.markReady()
@@ -1144,44 +1135,40 @@ func (vm *VM) Fatal(msg string, fields ...zap.Field) {
 //TODO below is new
 
 func (vm *VM) ETHL1HeadSubscribe() {
-	// Connect the client.
-	client, err := ethrpc.Dial("ws://0.0.0.0:8546")
-	if err != nil {
-		fmt.Println("Failed to connect to RPC server:", err)
-		return
-	}
-	blockch := make(chan chain.ETHBlock)
+	// Start the Ethereum L1 head subscription.
+	client, _ := ethrpc.Dial("ws://0.0.0.0:8546")
+	//subch := make(chan ETHBlock)
 
-	for i := 0; ; i++ {
-		if i > 0 {
-			time.Sleep(2 * time.Second)
+	// Ensure that subch receives the latest block.
+	go func() {
+		for i := 0; ; i++ {
+			if i > 0 {
+				time.Sleep(1 * time.Second)
+			}
+			subscribeBlocks(client, vm.subCh)
 		}
-		subscribeBlocks(client, vm.subCh, blockch)
-	}
-	// // Ensure that subch receives the latest block.
-	// go func() {
-	// 	for i := 0; ; i++ {
-	// 		if i > 0 {
-	// 			time.Sleep(2 * time.Second)
-	// 		}
-	// 		subscribeBlocks(client, subch)
-	// 	}
-	// }()
+	}()
 
-	// // Print events from the subscription as they arrive.
-	// for block := range subch {
-	// 	fmt.Println("latest block:", block.Number)
-	// }
+	// Start the goroutine to update vm.L1Head.
+	go func() {
+		for block := range vm.subCh {
+			vm.mu.Lock()
+			vm.L1Head = block.Number.String()
+			fmt.Println("latest block:", block.Number)
+			vm.mu.Unlock()
+		}
+	}()
+
 }
 
 // subscribeBlocks runs in its own goroutine and maintains
 // a subscription for new blocks.
-func subscribeBlocks(client *ethrpc.Client, subch chan string, blockch chan chain.ETHBlock) {
+func subscribeBlocks(client *ethrpc.Client, subch chan chain.ETHBlock) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// Subscribe to new blocks.
-	sub, err := client.EthSubscribe(ctx, blockch, "newHeads")
+	sub, err := client.EthSubscribe(ctx, subch, "newHeads")
 	if err != nil {
 		fmt.Println("subscribe error:", err)
 		return
@@ -1195,9 +1182,7 @@ func subscribeBlocks(client *ethrpc.Client, subch chan string, blockch chan chai
 		fmt.Println("can't get latest block:", err)
 		return
 	}
-	//lastBlock.Number.String()
-	subch <- lastBlock.Number.String()
-	//lastBlock
+	subch <- lastBlock
 
 	// The subscription will deliver events to the channel. Wait for the
 	// subscription to end for any reason, then loop around to re-establish
