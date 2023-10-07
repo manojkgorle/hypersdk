@@ -29,6 +29,7 @@ import (
 	"github.com/AnomalyFi/hypersdk/workers"
 
 	ethhex "github.com/ethereum/go-ethereum/common/hexutil"
+	ethrpc "github.com/ethereum/go-ethereum/rpc"
 )
 
 var (
@@ -92,8 +93,27 @@ type warpJob struct {
 func NewGenesisBlock(root ids.ID) *StatefulBlock {
 	//b, _ := new(big.Int).SetString("2", 16)
 	//num := (ethhex.Big)(*b)
+	//TODO need to add in Ethereum Block here
+
+	ethereumNodeURL := "https://0.0.0.0:8545"
+
+	// Create an RPC client
+	client, err := ethrpc.Dial(ethereumNodeURL)
+	if err != nil {
+		fmt.Errorf("Failed to connect to the Ethereum client: %v", err)
+	}
+
+	// Get the latest block number
+	var blockNumber ethhex.Uint64
+	err = client.Call(&blockNumber, "eth_blockNumber")
+	if err != nil {
+		fmt.Errorf("Failed to retrieve the latest block number: %v", err)
+	}
+
+	fmt.Printf("Latest Ethereum block number: %d\n", blockNumber)
+
 	return &StatefulBlock{
-		L1Head: "2",
+		L1Head: blockNumber.String(),
 		// We set the genesis block timestamp to be after the ProposerVM fork activation.
 		//
 		// This prevents an issue (when using millisecond timestamps) during ProposerVM activation
