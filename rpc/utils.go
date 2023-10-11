@@ -28,3 +28,10 @@ func NewJSONRPCHandler(
 func NewWebSocketHandler(server http.Handler) *common.HTTPHandler {
 	return &common.HTTPHandler{LockOptions: common.NoLock, Handler: server}
 }
+
+func NewRestAPIHandler(
+	server http.Handler,
+	lockOption common.LockOption,
+) *common.HTTPHandler {
+	return &common.HTTPHandler{LockOptions: lockOption, Handler: server}
+}

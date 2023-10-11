@@ -100,6 +100,8 @@ type VM struct {
 	// Transactions that streaming users are currently subscribed to
 	webSocketServer *rpc.WebSocketServer
 
+	//restServer *rpc.RestServer
+
 	// sigWorkers are used to verify signatures in parallel
 	// with limited parallelism
 	sigWorkers workers.Workers
@@ -302,6 +304,8 @@ func (vm *VM) Initialize(
 			snowCtx.Log.Error("could not load accepted blocks from disk", zap.Error(err))
 			return err
 		}
+		// It is not guaranteed that the last accepted state on-disk matches the post-execution
+		// result of the last accepted block.
 		snowCtx.Log.Info("initialized vm from last accepted", zap.Stringer("block", blk.ID()))
 	} else {
 		// Set balances and compute genesis root
@@ -338,7 +342,7 @@ func (vm *VM) Initialize(
 		if err := sps.Insert(ctx, chain.HeightKey(vm.StateManager().HeightKey()), binary.BigEndian.AppendUint64(nil, 0)); err != nil {
 			return err
 		}
-		if err := sps.Insert(ctx, chain.HeightKey(vm.StateManager().TimestampKey()), binary.BigEndian.AppendUint64(nil, 0)); err != nil {
+		if err := sps.Insert(ctx, chain.TimestampKey(vm.StateManager().TimestampKey()), binary.BigEndian.AppendUint64(nil, 0)); err != nil {
 			return err
 		}
 		genesisRules := vm.c.Rules(0)
@@ -356,7 +360,8 @@ func (vm *VM) Initialize(
 		if err := sps.Commit(ctx); err != nil {
 			return err
 		}
-		if _, err := vm.stateDB.GetMerkleRoot(ctx); err != nil {
+		genesisRoot, err := vm.stateDB.GetMerkleRoot(ctx)
+		if err != nil {
 			snowCtx.Log.Error("could not get merkle root", zap.Error(err))
 			return err
 		}
@@ -369,7 +374,11 @@ func (vm *VM) Initialize(
 		}
 		gBlkID := genesisBlk.ID()
 		vm.preferred, vm.lastAccepted = gBlkID, genesisBlk
-		snowCtx.Log.Info("initialized vm from genesis", zap.Stringer("block", gBlkID))
+		snowCtx.Log.Info("initialized vm from genesis",
+			zap.Stringer("block", gBlkID),
+			zap.Stringer("pre-execution root", genesisBlk.StateRoot),
+			zap.Stringer("post-execution root", genesisRoot),
+		)
 	}
 	go vm.processAcceptedBlocks()
 
@@ -416,12 +425,20 @@ func (vm *VM) Initialize(
 		return fmt.Errorf("duplicate JSONRPC handler found: %s", rpc.JSONRPCEndpoint)
 	}
 	vm.handlers[rpc.JSONRPCEndpoint] = jsonRPCHandler
+
 	if _, ok := vm.handlers[rpc.WebSocketEndpoint]; ok {
 		return fmt.Errorf("duplicate WebSocket handler found: %s", rpc.WebSocketEndpoint)
 	}
 	webSocketServer, pubsubServer := rpc.NewWebSocketServer(vm, vm.config.GetStreamingBacklogSize())
 	vm.webSocketServer = webSocketServer
 	vm.handlers[rpc.WebSocketEndpoint] = rpc.NewWebSocketHandler(pubsubServer)
+	// if _, ok := vm.handlers[rpc.RESTAPIEndpoint]; ok {
+	// 	return fmt.Errorf("duplicate REST handler found: %s", rpc.RESTAPIEndpoint)
+	// }
+	// restServer, routerServer := rpc.NewRestServer(vm, vm.config.GetStreamingBacklogSize())
+	// vm.restServer = restServer
+	// vm.handlers[rpc.RESTAPIEndpoint] = rpc.NewRestAPIHandler(routerServer, common.NoLock)
+
 	return nil
 }
 
@@ -754,7 +771,8 @@ func (vm *VM) buildBlock(ctx context.Context, blockContext *smblock.Context) (sn
 	}
 	blk, err := chain.BuildBlock(ctx, vm, preferredBlk, blockContext)
 	if err != nil {
-		vm.snowCtx.Log.Info("BuildBlock failed", zap.Error(err))
+		//TODO add back
+		//vm.snowCtx.Log.Info("BuildBlock failed", zap.Error(err))
 		return nil, err
 	}
 	vm.parsedBlocks.Put(blk.ID(), blk)
@@ -808,7 +826,7 @@ func (vm *VM) Submit(
 	if err != nil {
 		return []error{err}
 	}
-	view, err := blk.View(ctx, nil, false)
+	view, err := blk.View(ctx, false)
 	if err != nil {
 		// This will error if a block does not yet have processed state.
 		return []error{err}
