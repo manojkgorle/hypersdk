@@ -10,8 +10,8 @@ import (
 	"github.com/ava-labs/avalanchego/trace"
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/genesis"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/orderbook"
+	"github.com/manojkgorle/hyper-wasm/genesis"
+	"github.com/manojkgorle/hyper-wasm/orderbook"
 )
 
 type Controller interface {

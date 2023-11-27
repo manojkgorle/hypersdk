@@ -12,13 +12,13 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/genesis"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/orderbook"
-	_ "github.com/ava-labs/hypersdk/examples/tokenvm/registry" // ensure registry populated
 	"github.com/ava-labs/hypersdk/requester"
 	"github.com/ava-labs/hypersdk/rpc"
 	"github.com/ava-labs/hypersdk/utils"
+	"github.com/manojkgorle/hyper-wasm/consts"
+	"github.com/manojkgorle/hyper-wasm/genesis"
+	"github.com/manojkgorle/hyper-wasm/orderbook"
+	_ "github.com/manojkgorle/hyper-wasm/registry" // ensure registry populated
 )
 
 type JSONRPCClient struct {

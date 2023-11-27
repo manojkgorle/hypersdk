@@ -18,8 +18,8 @@ import (
 	"github.com/ava-labs/hypersdk/trace"
 	"github.com/ava-labs/hypersdk/vm"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/version"
+	"github.com/manojkgorle/hyper-wasm/consts"
+	"github.com/manojkgorle/hyper-wasm/version"
 )
 
 var _ vm.Config = (*Config)(nil)

@@ -43,13 +43,13 @@ import (
 	"github.com/ava-labs/hypersdk/vm"
 	"github.com/ava-labs/hypersdk/workers"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/controller"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/genesis"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
 	"github.com/ava-labs/hypersdk/rpc"
+	"github.com/manojkgorle/hyper-wasm/actions"
+	"github.com/manojkgorle/hyper-wasm/auth"
+	"github.com/manojkgorle/hyper-wasm/consts"
+	"github.com/manojkgorle/hyper-wasm/controller"
+	"github.com/manojkgorle/hyper-wasm/genesis"
+	trpc "github.com/manojkgorle/hyper-wasm/rpc"
 )
 
 const genesisBalance uint64 = hconsts.MaxUint64

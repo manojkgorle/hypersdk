@@ -1,4 +1,4 @@
-module github.com/ava-labs/hypersdk/examples/tokenvm
+module github.com/manojkgorle/hyper-wasm
 
 go 1.20
 

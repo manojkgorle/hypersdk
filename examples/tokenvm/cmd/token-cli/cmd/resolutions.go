@@ -13,11 +13,11 @@ import (
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/cli"
 	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	tconsts "github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
 	"github.com/ava-labs/hypersdk/rpc"
 	"github.com/ava-labs/hypersdk/utils"
+	"github.com/manojkgorle/hyper-wasm/actions"
+	tconsts "github.com/manojkgorle/hyper-wasm/consts"
+	trpc "github.com/manojkgorle/hyper-wasm/rpc"
 )
 
 // sendAndWait may not be used concurrently

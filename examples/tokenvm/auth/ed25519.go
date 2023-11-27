@@ -13,9 +13,9 @@ import (
 	"github.com/ava-labs/hypersdk/codec"
 	"github.com/ava-labs/hypersdk/crypto"
 	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/storage"
 	"github.com/ava-labs/hypersdk/state"
 	"github.com/ava-labs/hypersdk/utils"
+	"github.com/manojkgorle/hyper-wasm/storage"
 )
 
 var _ chain.Auth = (*ED25519)(nil)

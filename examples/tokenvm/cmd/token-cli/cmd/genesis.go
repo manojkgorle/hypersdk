@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/genesis"
+	"github.com/manojkgorle/hyper-wasm/genesis"
 )
 
 var genesisCmd = &cobra.Command{

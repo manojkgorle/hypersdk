@@ -16,10 +16,10 @@ import (
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/codec"
 	hconsts "github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/storage"
 	"github.com/ava-labs/hypersdk/state"
 	"github.com/ava-labs/hypersdk/vm"
+	"github.com/manojkgorle/hyper-wasm/consts"
+	"github.com/manojkgorle/hyper-wasm/storage"
 )
 
 var _ vm.Genesis = (*Genesis)(nil)

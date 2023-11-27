@@ -11,13 +11,13 @@ import (
 	"github.com/ava-labs/hypersdk/cli"
 	"github.com/ava-labs/hypersdk/codec"
 	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
 	"github.com/ava-labs/hypersdk/pubsub"
 	"github.com/ava-labs/hypersdk/rpc"
 	"github.com/ava-labs/hypersdk/utils"
+	"github.com/manojkgorle/hyper-wasm/actions"
+	"github.com/manojkgorle/hyper-wasm/auth"
+	"github.com/manojkgorle/hyper-wasm/consts"
+	trpc "github.com/manojkgorle/hyper-wasm/rpc"
 	"github.com/spf13/cobra"
 )
 

@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-feed/manager"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
+	"github.com/manojkgorle/hyper-wasm/cmd/token-feed/manager"
+	"github.com/manojkgorle/hyper-wasm/consts"
 )
 
 type JSONRPCServer struct {

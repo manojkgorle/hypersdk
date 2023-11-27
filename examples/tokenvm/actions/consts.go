@@ -14,6 +14,9 @@ const (
 	fillOrderID   uint8 = 6
 	mintAssetID   uint8 = 7
 	transferID    uint8 = 8
+
+	deployContractID uint8 = 9
+	txId             uint8 = 10
 )
 
 const (
@@ -28,6 +31,7 @@ const (
 	FillOrderComputeUnits   = 15
 	MintAssetComputeUnits   = 2
 	TransferComputeUnits    = 1
+	TempComputeUnits        = 1
 
 	MaxSymbolSize   = 8
 	MaxMemoSize     = 256

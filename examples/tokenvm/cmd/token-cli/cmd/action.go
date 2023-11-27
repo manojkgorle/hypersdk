@@ -7,6 +7,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"io/ioutil"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -15,13 +16,13 @@ import (
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/codec"
 	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	frpc "github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
-	tconsts "github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
 	"github.com/ava-labs/hypersdk/pubsub"
 	"github.com/ava-labs/hypersdk/rpc"
 	hutils "github.com/ava-labs/hypersdk/utils"
+	"github.com/manojkgorle/hyper-wasm/actions"
+	frpc "github.com/manojkgorle/hyper-wasm/cmd/token-faucet/rpc"
+	tconsts "github.com/manojkgorle/hyper-wasm/consts"
+	trpc "github.com/manojkgorle/hyper-wasm/rpc"
 	"github.com/spf13/cobra"
 )
 
@@ -136,6 +137,28 @@ var transferCmd = &cobra.Command{
 	},
 }
 
+//@todo our custom command starts here
+
+var deployContractCmd = &cobra.Command{
+	Use: "deploy-contract",
+	RunE: func(*cobra.Command, []string) error {
+		ctx := context.Background()
+		_, _, factory, cli, scli, tcli, err := handler.DefaultActor()
+		if err != nil {
+			return err
+		}
+
+		codeLocation, err := handler.Root().PromptString("Contract location", 1, 1000)
+		if err != nil {
+			return err
+		}
+		code, err := ioutil.ReadFile(codeLocation)
+		_, _, err = sendAndWait(ctx, nil, &actions.DeployContract{
+			ContractCode: code,
+		}, cli, scli, tcli, factory, true)
+		return err
+	},
+}
 var createAssetCmd = &cobra.Command{
 	Use: "create-asset",
 	RunE: func(*cobra.Command, []string) error {

@@ -9,9 +9,9 @@ import (
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/codec"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
+	"github.com/manojkgorle/hyper-wasm/actions"
+	"github.com/manojkgorle/hyper-wasm/auth"
+	"github.com/manojkgorle/hyper-wasm/consts"
 )
 
 // Setup types
@@ -34,6 +34,8 @@ func init() {
 
 		consts.ActionRegistry.Register((&actions.ImportAsset{}).GetTypeID(), actions.UnmarshalImportAsset, true),
 		consts.ActionRegistry.Register((&actions.ExportAsset{}).GetTypeID(), actions.UnmarshalExportAsset, false),
+
+		consts.ActionRegistry.Register((&actions.DeployContract{}).GetTypeID(), actions.UnmarshalDeployContract, false),
 
 		// When registering new auth, ALWAYS make sure to append at the end.
 		consts.AuthRegistry.Register((&auth.ED25519{}).GetTypeID(), auth.UnmarshalED25519, false),

@@ -12,9 +12,9 @@ import (
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/codec"
 	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/storage"
 	"github.com/ava-labs/hypersdk/state"
 	"github.com/ava-labs/hypersdk/utils"
+	"github.com/manojkgorle/hyper-wasm/storage"
 )
 
 var _ chain.Action = (*CreateOrder)(nil)

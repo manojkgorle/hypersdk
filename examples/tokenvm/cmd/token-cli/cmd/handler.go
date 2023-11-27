@@ -12,12 +12,12 @@ import (
 	"github.com/ava-labs/hypersdk/codec"
 	hconsts "github.com/ava-labs/hypersdk/consts"
 	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
 	"github.com/ava-labs/hypersdk/pubsub"
 	"github.com/ava-labs/hypersdk/rpc"
 	hutils "github.com/ava-labs/hypersdk/utils"
+	"github.com/manojkgorle/hyper-wasm/auth"
+	"github.com/manojkgorle/hyper-wasm/consts"
+	trpc "github.com/manojkgorle/hyper-wasm/rpc"
 )
 
 var _ cli.Controller = (*Controller)(nil)

@@ -16,8 +16,8 @@ import (
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/codec"
 	"github.com/ava-labs/hypersdk/consts"
-	tconsts "github.com/ava-labs/hypersdk/examples/tokenvm/consts"
 	"github.com/ava-labs/hypersdk/state"
+	tconsts "github.com/manojkgorle/hyper-wasm/consts"
 )
 
 type ReadState func(context.Context, [][]byte) ([][]byte, []error)
@@ -55,6 +55,9 @@ const (
 	feePrefix          = 0x6
 	incomingWarpPrefix = 0x7
 	outgoingWarpPrefix = 0x8
+
+	//hyper-wasm
+	contractPrefix = 0x9
 )
 
 const (
@@ -575,6 +578,25 @@ func SubLoan(
 		return mu.Remove(ctx, LoanKey(asset, destination))
 	}
 	return SetLoan(ctx, mu, asset, destination, nloan)
+}
+
+func contractKey(txID ids.ID) (k []byte) {
+	k = make([]byte, 1+consts.IDLen+consts.Uint16Len)
+	k[0] = contractPrefix
+	copy(k[1:], txID[:])
+	binary.BigEndian.PutUint16(k[1+consts.IDLen:], OrderChunks)
+	return
+}
+
+// @todo we started our storage func here
+func SetContract(
+	ctx context.Context,
+	mu state.Mutable,
+	txID ids.ID,
+	contractCode []byte,
+) error {
+	k := contractKey(txID)
+	return mu.Insert(ctx, k, contractCode)
 }
 
 func HeightKey() (k []byte) {

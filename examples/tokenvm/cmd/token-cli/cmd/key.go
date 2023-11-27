@@ -15,11 +15,11 @@ import (
 	"github.com/ava-labs/hypersdk/utils"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/challenge"
-	frpc "github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
-	tconsts "github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
+	"github.com/manojkgorle/hyper-wasm/auth"
+	"github.com/manojkgorle/hyper-wasm/challenge"
+	frpc "github.com/manojkgorle/hyper-wasm/cmd/token-faucet/rpc"
+	tconsts "github.com/manojkgorle/hyper-wasm/consts"
+	trpc "github.com/manojkgorle/hyper-wasm/rpc"
 )
 
 var keyCmd = &cobra.Command{

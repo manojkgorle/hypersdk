@@ -42,12 +42,12 @@ import (
 	hutils "github.com/ava-labs/hypersdk/utils"
 	"github.com/ava-labs/hypersdk/vm"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	tconsts "github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/controller"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/genesis"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
+	"github.com/manojkgorle/hyper-wasm/actions"
+	"github.com/manojkgorle/hyper-wasm/auth"
+	tconsts "github.com/manojkgorle/hyper-wasm/consts"
+	"github.com/manojkgorle/hyper-wasm/controller"
+	"github.com/manojkgorle/hyper-wasm/genesis"
+	trpc "github.com/manojkgorle/hyper-wasm/rpc"
 )
 
 var (

@@ -15,9 +15,9 @@ import (
 	"github.com/ava-labs/hypersdk/codec"
 	"github.com/ava-labs/hypersdk/consts"
 	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	tconsts "github.com/ava-labs/hypersdk/examples/tokenvm/consts"
 	"github.com/ava-labs/hypersdk/pebble"
 	hutils "github.com/ava-labs/hypersdk/utils"
+	tconsts "github.com/manojkgorle/hyper-wasm/consts"
 )
 
 const (

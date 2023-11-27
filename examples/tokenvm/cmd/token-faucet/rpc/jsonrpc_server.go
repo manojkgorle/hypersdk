@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
+	"github.com/manojkgorle/hyper-wasm/consts"
 )
 
 type JSONRPCServer struct {

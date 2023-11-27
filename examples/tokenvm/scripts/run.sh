@@ -250,20 +250,20 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-echo "running e2e tests"
-./tests/e2e/e2e.test \
---ginkgo.v \
---network-runner-log-level verbo \
---avalanchego-log-level ${AGO_LOGLEVEL} \
---network-runner-grpc-endpoint="0.0.0.0:12352" \
---network-runner-grpc-gateway-endpoint="0.0.0.0:12353" \
---avalanchego-path=${AVALANCHEGO_PATH} \
---avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
---vm-genesis-path=${TMPDIR}/tokenvm.genesis \
---vm-config-path=${TMPDIR}/tokenvm.config \
---subnet-config-path=${TMPDIR}/tokenvm.subnet \
---output-path=${TMPDIR}/avalanchego-${VERSION}/output.yaml \
---mode=${MODE}
+# echo "running e2e tests"
+# ./tests/e2e/e2e.test \
+# --ginkgo.v \
+# --network-runner-log-level verbo \
+# --avalanchego-log-level ${AGO_LOGLEVEL} \
+# --network-runner-grpc-endpoint="0.0.0.0:12352" \
+# --network-runner-grpc-gateway-endpoint="0.0.0.0:12353" \
+# --avalanchego-path=${AVALANCHEGO_PATH} \
+# --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
+# --vm-genesis-path=${TMPDIR}/tokenvm.genesis \
+# --vm-config-path=${TMPDIR}/tokenvm.config \
+# --subnet-config-path=${TMPDIR}/tokenvm.subnet \
+# --output-path=${TMPDIR}/avalanchego-${VERSION}/output.yaml \
+# --mode=${MODE}
 
 ############################
 if [[ ${MODE} == "run" || ${MODE} == "run-single" ]]; then

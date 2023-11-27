@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-feed/config"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-feed/manager"
-	frpc "github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-feed/rpc"
 	"github.com/ava-labs/hypersdk/server"
 	"github.com/ava-labs/hypersdk/utils"
+	"github.com/manojkgorle/hyper-wasm/cmd/token-feed/config"
+	"github.com/manojkgorle/hyper-wasm/cmd/token-feed/manager"
+	frpc "github.com/manojkgorle/hyper-wasm/cmd/token-feed/rpc"
 	"go.uber.org/zap"
 )
 

@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	HRP      = "token"
-	Name     = "tokenvm"
-	Symbol   = "TKN"
+	HRP      = "hysm"
+	Name     = "hyperwasm"
+	Symbol   = "HYS"
 	Decimals = 9
 )
 
