@@ -75,7 +75,7 @@ func Default() *Genesis {
 		MinUnitPrice:               chain.Dimensions{100, 100, 100, 100, 100},
 		UnitPriceChangeDenominator: chain.Dimensions{48, 48, 48, 48, 48},
 		WindowTargetUnits:          chain.Dimensions{20_000_000, 1_000, 1_000, 1_000, 1_000},
-		MaxBlockUnits:              chain.Dimensions{1_800_000, 2_000, 2_000, 2_000, 2_000},
+		MaxBlockUnits:              chain.Dimensions{1_800_000, 20_000, 20_000, 20_000, 20_000},
 
 		// Tx Parameters
 		ValidityWindow: 60 * hconsts.MillisecondsPerSecond, // ms
@@ -94,7 +94,7 @@ func Default() *Genesis {
 		StorageKeyAllocateUnits:   20,
 		StorageValueAllocateUnits: 5,
 		StorageKeyWriteUnits:      10,
-		StorageValueWriteUnits:    3,
+		StorageValueWriteUnits:    30,
 	}
 }
 

@@ -19,6 +19,7 @@ import (
 	"github.com/ava-labs/hypersdk/pubsub"
 	"github.com/ava-labs/hypersdk/rpc"
 	hutils "github.com/ava-labs/hypersdk/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/manojkgorle/hyper-wasm/actions"
 	frpc "github.com/manojkgorle/hyper-wasm/cmd/token-faucet/rpc"
 	tconsts "github.com/manojkgorle/hyper-wasm/consts"
@@ -153,10 +154,82 @@ var deployContractCmd = &cobra.Command{
 			return err
 		}
 		code, err := ioutil.ReadFile(codeLocation)
+		if err != nil {
+			return err
+		}
+		cont, err := handler.Root().PromptContinue()
+		if !cont || err != nil {
+			return err
+		}
 		_, _, err = sendAndWait(ctx, nil, &actions.DeployContract{
 			ContractCode: code,
 		}, cli, scli, tcli, factory, true)
 		return err
+	},
+}
+
+var transactCmd = &cobra.Command{
+	Use: "transact",
+	RunE: func(*cobra.Command, []string) error {
+		ctx := context.Background()
+		_, _, factory, cli, scli, tcli, err := handler.DefaultActor()
+		if err != nil {
+			return err
+		}
+
+		contractAddress, err := handler.Root().PromptAsset("contract Address", false)
+		if err != nil {
+			return err
+		}
+		functionName, err := handler.Root().PromptString("Function Name", 1, 1000)
+		if err != nil {
+			return err
+		}
+		input, err := handler.Root().PromptString("Input as hex", 1, 1000)
+		if err != nil {
+			return err
+		}
+		inputBytes := common.FromHex(input)
+
+		msgValue, err := handler.Root().PromptInt("Msg Value", 100000)
+		if err != nil {
+			return err
+		}
+
+		memWrite, err := handler.Root().PromptString("Memory as hex", 1, 1000)
+		if err != nil {
+			return err
+		}
+		memWriteBytes := common.FromHex(memWrite)
+
+		var touchAddressArr []byte
+		// for {
+		touchAddress, err := handler.Root().PromptAsset("Touchable address including contract Address, allzero for none", false)
+		if err != nil {
+			return err
+		}
+		touchAddressArr = touchAddress[:]
+		// if touchAddress == ids.Empty {
+		// 	break
+		// } else {
+		// 	touchAddressArr = append(touchAddressArr, touchAddress[:]...)
+		// }
+		// }
+		cont, err := handler.Root().PromptContinue()
+		if !cont || err != nil {
+			return err
+		}
+
+		_, _, err = sendAndWait(ctx, nil, &actions.Transact{
+			FunctionName:    []byte(functionName),
+			Input:           inputBytes,
+			MemoryWrite:     memWriteBytes,
+			ContractAddress: contractAddress,
+			MsgValue:        uint64(msgValue),
+			TouchAddress:    touchAddressArr,
+		}, cli, scli, tcli, factory, true)
+		return err
+
 	},
 }
 var createAssetCmd = &cobra.Command{

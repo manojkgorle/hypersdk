@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/hypersdk/codec"
 	"github.com/ava-labs/hypersdk/state"
 	"github.com/ava-labs/hypersdk/utils"
-	_ "github.com/ava-labs/hypersdk/utils"
 )
 
 var _ chain.Action = (*DeployContract)(nil)
@@ -31,12 +30,12 @@ func (*DeployContract) GetTypeID() uint8 {
 // we need to change the relevant fields later
 func (*DeployContract) StateKeys(_ chain.Auth, txID ids.ID) []string {
 	return []string{
-		string(storage.AssetKey(txID)),
+		string(storage.ContractKey(txID)),
 	}
 }
 
 func (*DeployContract) StateKeysMaxChunks() []uint16 {
-	return []uint16{storage.AssetChunks}
+	return []uint16{10000}
 }
 
 func (*DeployContract) OutputsWarpMessage() bool {
@@ -62,7 +61,7 @@ func (d *DeployContract) Execute(
 	_ int64,
 	auth chain.Auth,
 	txID ids.ID,
-	_ bool) (bool, uint64, []byte, *warp.UnsignedMessage, error) {
+	_ bool) (bool, uint64, []byte /*output*/, *warp.UnsignedMessage, error) {
 	code := d.ContractCode
 	units := uint64(codec.BytesLen(code))
 	if err := storage.SetContract(ctx, mu, txID, code); err != nil {
@@ -70,16 +69,18 @@ func (d *DeployContract) Execute(
 	}
 	//@todo implement dyanmic gas depending on contract code size.
 	//@todo partially done, for the compute units
+
+	//@todo contract id is txID
 	return true, units, nil, nil, nil
 }
 
+// @todo setUint, getUint, appendArray, popArray, accessArray, setString, getString, setStruct, getStruct --> technically everything is write bytes
 func (d *DeployContract) Marshal(p *codec.Packer) {
-
 	p.PackBytes(d.ContractCode)
 }
 
 func (*DeployContract) MaxComputeUnits(chain.Rules) uint64 {
-	return TempComputeUnits
+	return 1000000
 }
 
 func (d *DeployContract) Size() int {

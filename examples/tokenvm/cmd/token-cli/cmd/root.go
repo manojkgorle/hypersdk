@@ -167,6 +167,7 @@ func init() {
 		exportAssetCmd,
 
 		deployContractCmd,
+		transactCmd,
 	)
 
 	// spam

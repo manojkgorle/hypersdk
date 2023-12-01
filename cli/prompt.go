@@ -64,9 +64,7 @@ func (h *Handler) PromptAsset(label string, allowNative bool) (ids.ID, error) {
 	promptText := promptui.Prompt{
 		Label: text,
 		Validate: func(input string) error {
-			if len(input) == 0 {
-				return ErrInputEmpty
-			}
+
 			if allowNative && input == symbol {
 				return nil
 			}

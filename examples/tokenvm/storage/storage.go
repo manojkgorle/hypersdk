@@ -287,6 +287,36 @@ func SubBalance(
 	return setBalance(ctx, mu, key, nbal)
 }
 
+// @todo custom balance functions
+func getContractBalanceKey(addr ids.ID) (k []byte) {
+	k = make([]byte, 1+consts.IDLen)
+	k[0] = assetPrefix
+	copy(k[1:], addr[:])
+	return k
+}
+
+func AddBalanceToContract(
+	ctx context.Context,
+	mu state.Mutable,
+	addr ids.ID,
+	amount uint64,
+) error {
+	// @todo we are avoiding check for creation of accounts for the sake of simplicity and should be considered for later versions
+
+	// contract code is deployed at contractPrefix | txID(addr)
+	// balance balancePrefix | addr
+	// balance has ids.Empty
+	k := getContractBalanceKey(addr)
+	prevBal, _ := mu.GetValue(ctx, k)
+	prevBal2 := binary.BigEndian.Uint64(prevBal)
+	var newBal []byte
+	binary.BigEndian.PutUint64(newBal, prevBal2+amount)
+	mu.Insert(ctx, k, newBal)
+	return nil
+}
+
+// -- custom balance functions end
+
 // [assetPrefix] + [address]
 func AssetKey(asset ids.ID) (k []byte) {
 	k = make([]byte, 1+consts.IDLen+consts.Uint16Len)
@@ -580,11 +610,10 @@ func SubLoan(
 	return SetLoan(ctx, mu, asset, destination, nloan)
 }
 
-func contractKey(txID ids.ID) (k []byte) {
-	k = make([]byte, 1+consts.IDLen+consts.Uint16Len)
+func ContractKey(txID ids.ID) (k []byte) {
+	k = make([]byte, 1+consts.IDLen)
 	k[0] = contractPrefix
 	copy(k[1:], txID[:])
-	binary.BigEndian.PutUint16(k[1+consts.IDLen:], OrderChunks)
 	return
 }
 
@@ -595,10 +624,101 @@ func SetContract(
 	txID ids.ID,
 	contractCode []byte,
 ) error {
-	k := contractKey(txID)
+	k := ContractKey(txID)
 	return mu.Insert(ctx, k, contractCode)
 }
 
+func GetContract(
+	ctx context.Context,
+	im state.Immutable,
+	txID ids.ID,
+) ([]byte, error) {
+	k := ContractKey(txID)
+	return im.GetValue(ctx, k)
+}
+
+// @todo setUint, getUint, appendArray, popArray, accessArray, setString, getString, setStruct, getStruct --> technically everything is write bytes
+func StateStorageKey(contractAddress ids.ID, name string) (k []byte) {
+	bstring := []byte(name)
+	k = make([]byte, 1+consts.IDLen+len(bstring))
+
+	k[0] = contractPrefix
+	copy(k[1:], append(contractAddress[:], bstring...))
+	return
+}
+
+func SetUint(
+	ctx context.Context,
+	mu state.Mutable,
+	contractAddress ids.ID,
+	name string,
+	uintValue uint64) error {
+
+	k := StateStorageKey(contractAddress, name)
+	v := make([]byte, consts.Uint64Len)
+	binary.BigEndian.PutUint64(v[:], uintValue)
+	return mu.Insert(ctx, k, v)
+}
+
+func GetUint(
+	ctx context.Context,
+	im state.Immutable,
+	contractAddress ids.ID,
+	name string) (uint64, error) {
+	k := StateStorageKey(contractAddress, name)
+	val, err := im.GetValue(ctx, k)
+	if err != nil {
+		return 0, err
+	}
+	uintValue := binary.BigEndian.Uint64(val)
+	return uintValue, err
+}
+
+func SetString(
+	ctx context.Context,
+	mu state.Mutable,
+	contractAddress ids.ID,
+	name string,
+	stringValue string) error {
+	k := StateStorageKey(contractAddress, name)
+	v := []byte(stringValue)
+	return mu.Insert(ctx, k, v)
+}
+
+func GetString(
+	ctx context.Context,
+	im state.Immutable,
+	contractAddress ids.ID,
+	name string) (string, error) {
+
+	k := StateStorageKey(contractAddress, name)
+	val, err := im.GetValue(ctx, k)
+	if err != nil {
+		return "", err
+	}
+	return string(val[:]), err
+}
+
+func SetBytes(
+	ctx context.Context,
+	mu state.Mutable,
+	contractAddress ids.ID,
+	name string,
+	byteData []byte) error {
+	k := StateStorageKey(contractAddress, name)
+	return mu.Insert(ctx, k, byteData)
+}
+
+func GetBytes(
+	ctx context.Context,
+	im state.Immutable,
+	contractAddress ids.ID,
+	name string) ([]byte, error) {
+	k := StateStorageKey(contractAddress, name)
+	return im.GetValue(ctx, k)
+}
+
+// @todo actually we can do universal abstraction at the transact level, but we choose to do here to keep things clear
 func HeightKey() (k []byte) {
 	return heightKey
 }

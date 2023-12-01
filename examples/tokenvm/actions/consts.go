@@ -31,10 +31,10 @@ const (
 	FillOrderComputeUnits   = 15
 	MintAssetComputeUnits   = 2
 	TransferComputeUnits    = 1
-	TempComputeUnits        = 1
-
-	MaxSymbolSize   = 8
-	MaxMemoSize     = 256
-	MaxMetadataSize = 256
-	MaxDecimals     = 9
+	TransactMaxComputeUnits = 1_000_000
+	TempComputeUnits        = 10
+	MaxSymbolSize           = 8
+	MaxMemoSize             = 256
+	MaxMetadataSize         = 256
+	MaxDecimals             = 9
 )

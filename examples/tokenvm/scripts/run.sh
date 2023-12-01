@@ -25,7 +25,7 @@ LOGLEVEL=${LOGLEVEL:-info}
 STATESYNC_DELAY=${STATESYNC_DELAY:-0}
 MIN_BLOCK_GAP=${MIN_BLOCK_GAP:-100}
 STORE_TXS=${STORE_TXS:-false}
-UNLIMITED_USAGE=${UNLIMITED_USAGE:-false}
+UNLIMITED_USAGE=${UNLIMITED_USAGE:-true}
 ADDRESS=${ADDRESS:-token1qrzvk4zlwj9zsacqgtufx7zvapd3quufqpxk5rsdd4633m4wz2fdj73w34s}
 if [[ ${MODE} != "run" && ${MODE} != "run-single" ]]; then
   LOGLEVEL=debug
@@ -36,7 +36,7 @@ if [[ ${MODE} != "run" && ${MODE} != "run-single" ]]; then
 fi
 
 WINDOW_TARGET_UNITS="40000000,450000,450000,450000,450000"
-MAX_BLOCK_UNITS="1800000,15000,15000,2500,15000"
+MAX_BLOCK_UNITS="1800000,15000,150000,25000,15000"
 if ${UNLIMITED_USAGE}; then
   WINDOW_TARGET_UNITS="${MAX_UINT64},${MAX_UINT64},${MAX_UINT64},${MAX_UINT64},${MAX_UINT64}"
   # If we don't limit the block size, AvalancheGo will reject the block.
@@ -250,20 +250,20 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-# echo "running e2e tests"
-# ./tests/e2e/e2e.test \
-# --ginkgo.v \
-# --network-runner-log-level verbo \
-# --avalanchego-log-level ${AGO_LOGLEVEL} \
-# --network-runner-grpc-endpoint="0.0.0.0:12352" \
-# --network-runner-grpc-gateway-endpoint="0.0.0.0:12353" \
-# --avalanchego-path=${AVALANCHEGO_PATH} \
-# --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
-# --vm-genesis-path=${TMPDIR}/tokenvm.genesis \
-# --vm-config-path=${TMPDIR}/tokenvm.config \
-# --subnet-config-path=${TMPDIR}/tokenvm.subnet \
-# --output-path=${TMPDIR}/avalanchego-${VERSION}/output.yaml \
-# --mode=${MODE}
+echo "running e2e tests"
+./tests/e2e/e2e.test \
+--ginkgo.v \
+--network-runner-log-level verbo \
+--avalanchego-log-level ${AGO_LOGLEVEL} \
+--network-runner-grpc-endpoint="0.0.0.0:12352" \
+--network-runner-grpc-gateway-endpoint="0.0.0.0:12353" \
+--avalanchego-path=${AVALANCHEGO_PATH} \
+--avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
+--vm-genesis-path=${TMPDIR}/tokenvm.genesis \
+--vm-config-path=${TMPDIR}/tokenvm.config \
+--subnet-config-path=${TMPDIR}/tokenvm.subnet \
+--output-path=${TMPDIR}/avalanchego-${VERSION}/output.yaml \
+--mode=${MODE}
 
 ############################
 if [[ ${MODE} == "run" || ${MODE} == "run-single" ]]; then

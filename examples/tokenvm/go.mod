@@ -123,6 +123,7 @@ require (
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/supranational/blst v0.3.11 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a // indirect
+	github.com/tetratelabs/wazero v1.5.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/tkrajina/go-reflector v0.5.6 // indirect
