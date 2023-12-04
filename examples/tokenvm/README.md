@@ -9,6 +9,7 @@
 
 ## Todo
 
+- Seperate Hyper-Wasm VM from tokenVM.
 - Hyper-Wasm-Sdk standardisation and abstraction.
 - Proper offset and pointer dealings
 - Write reusable go components.
