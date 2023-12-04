@@ -23,7 +23,6 @@ func init() {
 	errs.Add(
 		// When registering new actions, ALWAYS make sure to append at the end.
 		consts.ActionRegistry.Register((&actions.Transfer{}).GetTypeID(), actions.UnmarshalTransfer, false),
-
 		consts.ActionRegistry.Register((&actions.CreateAsset{}).GetTypeID(), actions.UnmarshalCreateAsset, false),
 		consts.ActionRegistry.Register((&actions.MintAsset{}).GetTypeID(), actions.UnmarshalMintAsset, false),
 		consts.ActionRegistry.Register((&actions.BurnAsset{}).GetTypeID(), actions.UnmarshalBurnAsset, false),
@@ -36,8 +35,8 @@ func init() {
 		consts.ActionRegistry.Register((&actions.ExportAsset{}).GetTypeID(), actions.UnmarshalExportAsset, false),
 
 		consts.ActionRegistry.Register((&actions.DeployContract{}).GetTypeID(), actions.UnmarshalDeployContract, false),
-		// consts.ActionRegistry.Register((&actions.Transact{}).GetTypeID(), actions.UnmarshalTransact, false),
-
+		consts.ActionRegistry.Register((&actions.TransactContract{}).GetTypeID(), actions.UnmarshalTransactContract, false),
+		consts.ActionRegistry.Register((&actions.Transact2{}).GetTypeID(), actions.UnmarshalTransact2, false),
 		// When registering new auth, ALWAYS make sure to append at the end.
 		consts.AuthRegistry.Register((&auth.ED25519{}).GetTypeID(), auth.UnmarshalED25519, false),
 	)

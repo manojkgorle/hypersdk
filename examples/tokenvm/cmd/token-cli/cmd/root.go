@@ -168,6 +168,7 @@ func init() {
 
 		deployContractCmd,
 		transactCmd,
+		transact2Cmd,
 	)
 
 	// spam

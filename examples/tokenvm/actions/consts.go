@@ -16,7 +16,8 @@ const (
 	transferID    uint8 = 8
 
 	deployContractID uint8 = 9
-	txId             uint8 = 10
+	txID             uint8 = 10
+	txID2            uint8 = 11
 )
 
 const (

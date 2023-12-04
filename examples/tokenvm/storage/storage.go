@@ -644,7 +644,7 @@ func StateStorageKey(contractAddress ids.ID, name string) (k []byte) {
 
 	k[0] = contractPrefix
 	copy(k[1:], append(contractAddress[:], bstring...))
-	return
+	return k
 }
 
 func SetUint(

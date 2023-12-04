@@ -158,7 +158,7 @@ cat <<EOF > ${TMPDIR}/tokenvm.config
   "signatureVerificationCores": 2,
   "rootGenerationCores": 2,
   "transactionExecutionCores": 2,
-  "verifySignatures": true,
+  "verifySignatures": false,
   "storeTransactions": ${STORE_TXS},
   "streamingBacklogSize": 10000000,
   "trackedPairs":["*"],

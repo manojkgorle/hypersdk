@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -203,25 +204,29 @@ var transactCmd = &cobra.Command{
 		memWriteBytes := common.FromHex(memWrite)
 
 		var touchAddressArr []byte
-		// for {
-		touchAddress, err := handler.Root().PromptAsset("Touchable address including contract Address, allzero for none", false)
+
+		touchAddress, err := handler.Root().PromptString("Touchable address including contract Address, seperated by white space", 0, 1024)
 		if err != nil {
 			return err
 		}
-		touchAddressArr = touchAddress[:]
-		// if touchAddress == ids.Empty {
-		// 	break
-		// } else {
-		// 	touchAddressArr = append(touchAddressArr, touchAddress[:]...)
-		// }
-		// }
+		touchAddressStrArr := strings.Fields(touchAddress)
+		touchAddressLen := len(touchAddressStrArr)
+		// @todo the special case of 31 assets need to be sorted
+		for i := 0; i < touchAddressLen; i++ {
+			touchAddressID, err := ids.FromString(touchAddressStrArr[i])
+			if err != nil {
+				return err
+			}
+			touchAddressArr = append(touchAddressArr, touchAddressID[:]...)
+		}
+
 		cont, err := handler.Root().PromptContinue()
 		if !cont || err != nil {
 			return err
 		}
 
-		_, _, err = sendAndWait(ctx, nil, &actions.Transact{
-			FunctionName:    []byte(functionName),
+		_, _, err = sendAndWait(ctx, nil, &actions.TransactContract{
+			FunctionName:    functionName,
 			Input:           inputBytes,
 			MemoryWrite:     memWriteBytes,
 			ContractAddress: contractAddress,
@@ -232,6 +237,59 @@ var transactCmd = &cobra.Command{
 
 	},
 }
+
+var transact2Cmd = &cobra.Command{
+	Use: "transact2",
+	RunE: func(*cobra.Command, []string) error {
+		ctx := context.Background()
+
+		_, _, factory, cli, scli, tcli, err := handler.DefaultActor()
+		if err != nil {
+			return err
+		}
+
+		functionName, err := handler.Root().PromptString("Function Name", 1, 1000)
+		if err != nil {
+			return err
+		}
+		contractAddress, err := handler.Root().PromptAsset("contract Address", false)
+		if err != nil {
+			return err
+		}
+		var touchAddressArr []byte
+
+		touchAddress, err := handler.Root().PromptString("Touchable address including contract Address, seperated by white space", 0, 1024)
+		if err != nil {
+			return err
+		}
+		touchAddressStrArr := strings.Fields(touchAddress)
+		touchAddressLen := len(touchAddressStrArr)
+		// @todo the special case of 31 assets need to be sorted
+		for i := 0; i < touchAddressLen; i++ {
+			touchAddressID, err := ids.FromString(touchAddressStrArr[i])
+			if err != nil {
+				return err
+			}
+			touchAddressArr = append(touchAddressArr, touchAddressID[:]...)
+		}
+
+		cont, err := handler.Root().PromptContinue()
+		if !cont || err != nil {
+			return err
+		}
+
+		_, _, err = sendAndWait(ctx, nil, &actions.Transact2{
+			FunctionName:    functionName,
+			ContractAddress: contractAddress,
+			Input:           []byte{},
+			MsgValue:        10,
+			TestBytes:       []byte("string"),
+			TouchAddress:    touchAddressArr,
+		}, cli, scli, tcli, factory, true)
+		return err
+	},
+}
+
 var createAssetCmd = &cobra.Command{
 	Use: "create-asset",
 	RunE: func(*cobra.Command, []string) error {

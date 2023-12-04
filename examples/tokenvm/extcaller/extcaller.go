@@ -1,139 +1,62 @@
-package actions
+package extcaller
 
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"math"
 	"strconv"
 	"unsafe"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
 	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/utils"
-	"github.com/manojkgorle/hyper-wasm/extcaller"
 	"github.com/manojkgorle/hyper-wasm/storage"
-
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 )
 
-var _ chain.Action = (*TransactContract)(nil)
+const (
+	TempComputeUnits = 10
+)
 
-type TransactContract struct {
-	FunctionName    string `json:"functionName"`
-	ContractAddress ids.ID `json:"contractAddress"`
-	Input           []byte `json:"input"` // hex encoded string -> []bytes
-	MsgValue        uint64 `json:"msgValue"`
-	MemoryWrite     []byte `json:"memoryWrite"`  // write data to 0 pointer, usecases should be determined
-	TouchAddress    []byte `json:"touchAddress"` // total # of contracts accessed during execution of transaction(including worst cases)
+// @todo we are still pending with this
+type Ext_call_struct struct {
+	Ctx       context.Context
+	Cr        chain.Rules
+	Mu        state.Mutable
+	Timestamp int64
+	Auth      chain.Auth
+	TxID      ids.ID
+
+	FunctionName    string
+	ContractAddress ids.ID
+	Input           []byte
+	MsgValue        uint64
+	MsgSender       ids.ID
 }
 
-// we give users a defined pointer and ask them to write whatever data they wanted to write to it
-// we do it using allocate_ptr
 type ChainStruct struct {
-	timestamp int64
-	msgValue  uint64
-	//@todo deal with this --> ptr & size need to be passed ✅
+	timestamp    int64
+	msgValue     uint64
 	msgSenderPtr uint32
 	msgSenderLen uint32
 }
 
-func (*TransactContract) GetTypeID() uint8 {
-	return txID
-}
-
-func (t *TransactContract) StateKeys(_ chain.Auth, txID ids.ID) []string {
-	// we are assigning 2^5 storage keys for a contract.
-	// statekeys are needed to be slot(i) --> slot0, slot1, slot2, ....
-	touchAddress := t.TouchAddress
-	len := len(touchAddress) / 32
-
-	var stateKeysArr []string
-	stateKeysArr = append(stateKeysArr, string(storage.ContractKey(t.ContractAddress)))
-	for i := 0; i < len; i++ {
-		touchId, err := ids.ToID(touchAddress[i*32 : i*32+32])
-		if err != nil {
-			return []string{}
-		}
-		for j := 0; j < 32; j++ {
-			varName := fmt.Sprint("slot", j)
-			storageKey := string(storage.StateStorageKey(touchId, varName))
-			stateKeysArr = append(stateKeysArr, storageKey)
-		}
-	}
-	return stateKeysArr
-
-}
-
-func (*TransactContract) StateKeysMaxChunks() []uint16 {
-	return []uint16{storage.AssetChunks}
-}
-
-func (*TransactContract) OutputsWarpMessage() bool {
-	return false
-}
-
-func (t *TransactContract) Marshal(p *codec.Packer) {
-	p.PackString(t.FunctionName)
-	p.PackID(t.ContractAddress)
-	p.PackBytes(t.Input)
-	p.PackUint64(t.MsgValue)
-	p.PackBytes(t.MemoryWrite)
-	p.PackBytes(t.TouchAddress)
-}
-
-func (*TransactContract) MaxComputeUnits(chain.Rules) uint64 {
-	return TransactMaxComputeUnits
-}
-
-func (t *TransactContract) Size() int {
-	return codec.StringLen(t.FunctionName) + codec.BytesLen(t.Input) + codec.BytesLen(t.MemoryWrite) + consts.IDLen + consts.Uint64Len + codec.BytesLen(t.TouchAddress)
-}
-
-func (*TransactContract) ValidRange(chain.Rules) (int64, int64) {
-	// Returning -1, -1 means that the action is always valid.
-	return -1, -1
-}
-
-// @todo what is this, and how does this work??
-func UnmarshalTransactContract(p *codec.Packer, _ *warp.Message) (chain.Action, error) {
-	var transact TransactContract
-	transact.FunctionName = p.UnpackString(true)
-	p.UnpackID(true, &transact.ContractAddress)
-	p.UnpackBytes(1024, false, &transact.Input)
-	transact.MsgValue = p.UnpackUint64(true)
-	p.UnpackBytes(1024, false, &transact.MemoryWrite)
-	p.UnpackBytes(1024, false, &transact.TouchAddress)
-	return &transact, p.Err()
-}
-
-func (t *TransactContract) Execute(
-	ctx context.Context,
-	cr chain.Rules,
-	mu state.Mutable,
-	timestamp int64,
-	auth chain.Auth,
-	txID ids.ID,
-	_ bool) (bool, uint64, []byte, *warp.UnsignedMessage, error) {
-
-	function := t.FunctionName           // the funcition we need to invoke, during the transaction
-	inputBytes := t.Input                // the struct input to be passed to wasm runtime
-	contractAddress := t.ContractAddress // the contract to be loaded
-	msgValue := t.MsgValue
-	memoryWriteBytes := t.MemoryWrite
-	msgSender := auth.Actor()
-	msgSenderLen := 33
-	// @todo contractAddress should be converted to ID.id
-
+func (e *Ext_call_struct) External_call() (bool /*success/fail*/, uint64 /*compute units*/, []byte /*output*/, error) {
+	ctx := e.Ctx
+	mu := e.Mu
+	function := e.FunctionName
+	inputBytes := e.Input
+	contractAddress := e.ContractAddress
+	msgValue := e.MsgValue
+	msgSender := e.MsgSender
+	msgSenderLen := 32
+	// txOrigin := e.Auth.Actor() // @todo later add support for this
+	// chainInputStruct := ChainStruct{timestamp: e.Timestamp, msgValue: msgValue, }
 	deployedCodeAtContractAddress, err := storage.GetContract(ctx, mu, contractAddress)
 	if err != nil {
-		return false, TempComputeUnits, []byte("NO Code"), nil, nil
+		return false, TempComputeUnits, nil, errors.New("NO Code")
 	}
 	// Choose the context to use for function calls.
 	ctxWasm := context.Background()
@@ -146,14 +69,14 @@ func (t *TransactContract) Execute(
 	compiledMod, err := r.CompileModule(ctxWasm, deployedCodeAtContractAddress)
 
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(errors.New("compile module failed")), nil, nil
+		return false, TempComputeUnits, nil, errors.New("compile module failed")
 	}
 
 	expFunc := compiledMod.ExportedFunctions()
 	checkFunc := expFunc[function]
 
 	if checkFunc == nil {
-		return false, TempComputeUnits, utils.ErrBytes(errors.New("funtion doesnot exist")), nil, nil
+		return false, TempComputeUnits, nil, errors.New("funtion doesnot exist")
 	}
 
 	inputParamCount := len(checkFunc.ParamTypes())
@@ -309,24 +232,14 @@ func (t *TransactContract) Execute(
 		return 0 // ⚠️under progress, no errors or reverts are thrown for array out of bound
 	}
 
-	// @todo CALL ⚠️ under development, not supported yet
-	CALLInner := func(ctxInner context.Context, m api.Module, call_ptr uint32, call_len uint32) (uint32 /*bool*/, uint32 /*pointer*/, uint32 /*length*/) {
-		ext_call_struct := extcaller.Ext_call_struct{Ctx: ctx, Cr: cr, Mu: mu, Timestamp: timestamp, Auth: auth, TxID: txID}
-		txStatus, _ /*compute units*/, call_output, _ := ext_call_struct.External_call()
-		if !txStatus {
-			return 0, 0, 0
-		}
-		offset := uint32(444444)
-		length := len(call_output)
-		m.Memory().Write(offset, call_output)
-		return 1, offset, uint32(length)
-	}
+	// @todo CALL
+	CALLInner := func(ctxInner context.Context, m api.Module) {}
 
 	// @todo DELEGATECALL
 	DELEGATECALLInner := func(ctxInner context.Context, m api.Module) {}
-	// Instantiate a Go-defined module named "env" that exports a function to
-	// log to the console.
-	// @todo import all external functions
+	// // Instantiate a Go-defined module named "env" that exports a function to
+	// // log to the console.
+	// // @todo import all external functions
 
 	_, errWasm := r.NewHostModuleBuilder("env").NewFunctionBuilder().WithFunc(stateStoreUintInner).Export("stateStoreUint").
 		NewFunctionBuilder().WithFunc(stateStoreIntInner).Export("stateStoreInt").
@@ -348,12 +261,12 @@ func (t *TransactContract) Execute(
 		NewFunctionBuilder().WithFunc(DELEGATECALLInner).Export("DELEGATECALL").Instantiate(ctxWasm)
 	if errWasm != nil {
 		log.Panicln(errWasm)
-		return false, TempComputeUnits, utils.ErrBytes(errWasm), nil, nil
+		return false, TempComputeUnits, nil, errWasm
 	}
 
 	mod, err := r.Instantiate(ctxWasm, deployedCodeAtContractAddress)
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+		return false, TempComputeUnits, nil, err
 	}
 
 	// @todo load all required functions
@@ -368,37 +281,35 @@ func (t *TransactContract) Execute(
 	// codec.Address -> AddressLen -> 33bytes
 	results, err := allocate_ptr.Call(ctxWasm, uint64(msgSenderLen))
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+		return false, TempComputeUnits, nil, err
 	}
 	addressPtr := results[0]
-	chainInputStruct := ChainStruct{timestamp: timestamp, msgValue: msgValue, msgSenderPtr: uint32(addressPtr), msgSenderLen: uint32(msgSenderLen)}
+	chainInputStruct := ChainStruct{timestamp: e.Timestamp, msgValue: msgValue, msgSenderPtr: uint32(addressPtr), msgSenderLen: uint32(msgSenderLen)}
 	chainInputBytes := structToBytes(chainInputStruct)
 	defer deallocate_ptr.Call(ctxWasm, addressPtr, uint64(msgSenderLen))
 
 	results, err = allocate_chain_struct.Call(ctxWasm)
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+		return false, TempComputeUnits, nil, err
 	}
+
 	chainStructPtr := results[0]
 	defer deallocate_chain_struct.Call(ctxWasm, chainStructPtr)
 
 	inputSize := uint64(unsafe.Sizeof(inputBytes))
 	results, err = allocate_ptr.Call(ctxWasm, inputSize)
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+		return false, TempComputeUnits, nil, err
 	}
 	inputPtr := results[0]
 	defer deallocate_ptr.Call(ctxWasm, inputPtr, inputSize)
 
-	// @todo we need deterministic pointer here
-	// @todo above is done, check & test for consequences
-	memoryWritePtr := uint64(0)
-
+	//@todo no memory write for ext_call
 	// these should not fail
 	mod.Memory().Write(uint32(addressPtr), msgSender[:])
 	mod.Memory().Write(uint32(inputPtr), inputBytes)
 	mod.Memory().Write(uint32(chainStructPtr), chainInputBytes)
-	mod.Memory().Write(uint32(memoryWritePtr), memoryWriteBytes)
+
 	/// end of struct infusion and memory allocation
 
 	//@todo transfer balance to contract's address before calling the contract's function
@@ -412,7 +323,7 @@ func (t *TransactContract) Execute(
 	if inputParamCount == 2 {
 		result, err := txFunction.Call(ctxWasm, chainStructPtr, inputPtr)
 		if err != nil {
-			return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+			return false, TempComputeUnits, nil, err
 		}
 		if outputParamCount == 1 {
 			// @todo we receive a pointer--> retrieve the value underlying the pointer and pass as output
@@ -420,18 +331,18 @@ func (t *TransactContract) Execute(
 			outPtrSize := uint32(result[0])
 			output, ok := mod.Memory().Read(outPtr, outPtrSize) // @todo test it
 			if !ok {
-				return false, TempComputeUnits, []byte("cant read from memory"), nil, nil
+				return false, TempComputeUnits, nil, errors.New("cant read from memory")
 			}
-			return true, 0, output, nil, nil
+			return true, 0, output, nil
 		}
 		if outputParamCount == 0 {
-			return true, 0, nil, nil, nil
+			return true, 0, nil, nil
 		}
 	}
 	if inputParamCount == 1 {
 		result, err := txFunction.Call(ctxWasm, chainStructPtr)
 		if err != nil {
-			return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+			return false, TempComputeUnits, nil, err
 		}
 		if outputParamCount == 1 {
 			// @todo we receive a pointer--> retrieve the value underlying the pointer and pass as output
@@ -439,18 +350,18 @@ func (t *TransactContract) Execute(
 			outPtrSize := uint32(result[0])
 			output, ok := mod.Memory().Read(outPtr, outPtrSize) // @todo test it
 			if !ok {
-				return false, TempComputeUnits, []byte("cant read from memory"), nil, nil
+				return false, TempComputeUnits, nil, errors.New("cant read from memory")
 			}
-			return true, 0, output, nil, nil
+			return true, 0, output, nil
 		}
 		if outputParamCount == 0 {
-			return true, 0, nil, nil, nil
+			return true, 0, nil, nil
 		}
 	}
 	if inputParamCount == 0 {
 		result, err := txFunction.Call(ctxWasm)
 		if err != nil {
-			return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+			return false, TempComputeUnits, nil, err
 		}
 		if outputParamCount == 1 {
 			// @todo we receive a pointer--> retrieve the value underlying the pointer and pass as output
@@ -458,15 +369,15 @@ func (t *TransactContract) Execute(
 			outPtrSize := uint32(result[0])
 			output, ok := mod.Memory().Read(outPtr, outPtrSize) // @todo test it
 			if !ok {
-				return false, TempComputeUnits, []byte("cant read from memory"), nil, nil
+				return false, TempComputeUnits, nil, errors.New("cant read from memory")
 			}
-			return true, 0, output, nil, nil
+			return true, 0, output, nil
 		}
 		if outputParamCount == 0 {
-			return true, 0, nil, nil, nil
+			return true, 0, nil, nil
 		}
 	}
-	return false, TempComputeUnits, nil, nil, nil //@todo if we reach here, abi is not implimented by the function
+	return false, TempComputeUnits, nil, nil //@todo if we reach here, abi is not implimented by the function
 }
 
 func structToBytes(c ChainStruct) []byte {
@@ -476,21 +387,3 @@ func structToBytes(c ChainStruct) []byte {
 	bytes := (*[1 << 30]byte)(unsafe.Pointer(&c))[:size:size]
 	return bytes
 }
-
-// @todo CALL
-func CALL() {}
-
-// @todo DELEGATECALL
-func DELEGATECALL() {}
-
-//@todo steps to follow in completing the programme.
-// dealing with inputs --> custom input struct & user sent input struct
-// call, delegatecall w same ways
-// gas metering for memory
-//
-//
-//
-//
-
-//@todo value transfer can be supported using chain.Auth
-// we can use auth
