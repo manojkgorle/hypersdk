@@ -131,9 +131,12 @@ func (t *TransactContract) Execute(
 	msgSenderLen := 33
 	// @todo contractAddress should be converted to ID.id
 
+	var allocate_ptr api.Function // pre declaring, to access it before hand while using state get functions
+	var gasUsed uint64 = BaseComputeUnits
+	var hasEncError bool
 	deployedCodeAtContractAddress, err := storage.GetContract(ctx, mu, contractAddress)
 	if err != nil {
-		return false, TempComputeUnits, []byte("NO Code"), nil, nil
+		return false, gasUsed, []byte("NO Code"), nil, nil
 	}
 	// Choose the context to use for function calls.
 	ctxWasm := context.Background()
@@ -146,14 +149,15 @@ func (t *TransactContract) Execute(
 	compiledMod, err := r.CompileModule(ctxWasm, deployedCodeAtContractAddress)
 
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(errors.New("compile module failed")), nil, nil
+		return false, gasUsed, utils.ErrBytes(errors.New("compile module failed")), nil, nil
 	}
 
 	expFunc := compiledMod.ExportedFunctions()
 	checkFunc := expFunc[function]
 
 	if checkFunc == nil {
-		return false, TempComputeUnits, utils.ErrBytes(errors.New("funtion doesnot exist")), nil, nil
+		gasUsed += FunctionNotFoundComputeUnits
+		return false, gasUsed, utils.ErrBytes(errors.New("funtion doesnot exist")), nil, nil
 	}
 
 	inputParamCount := len(checkFunc.ParamTypes())
@@ -162,33 +166,41 @@ func (t *TransactContract) Execute(
 	//@todo inner functions
 	stateStoreUintInner := func(ctxInner context.Context, m api.Module, i uint32 /* slot number*/, x uint64) {
 		slot := "slot" + strconv.Itoa(int(i))
+		gasUsed += StoreUintComputeUnits
 		storage.SetUint(ctx, mu, contractAddress, slot, x)
 	}
 
 	stateStoreIntInner := func(ctxInner context.Context, m api.Module, i uint32, x int64) {
 		//convert int to uint to []byte and store
 		slot := "slot" + strconv.Itoa(int(i))
+		gasUsed += StoreIntComputeUnits
 		storage.SetUint(ctx, mu, contractAddress, slot, uint64(x))
 	}
 
 	stateStoreFloatInner := func(ctxInner context.Context, m api.Module, i uint32, x float64) {
 		slot := "slot" + strconv.Itoa(int(i))
+		gasUsed += StoreFloatComuteUnits
 		storage.SetUint(ctx, mu, contractAddress, slot, math.Float64bits(x))
 	}
 
 	stateStoreStringInner := func(ctxInner context.Context, m api.Module, i uint32, ptr uint32, size uint32) {
 		slot := "slot" + strconv.Itoa(int(i))
+		gasUsed += BaseStoreStringComputeUnits + uint64(size)*StoreStringIncComputeUnits
 		if bytes, ok := m.Memory().Read(ptr, size); !ok {
-			log.Panicln(ok)
+			hasEncError = true
+			gasUsed += WrongPointerOrLengthComputeUnits
 		} else {
 			storage.SetBytes(ctx, mu, contractAddress, slot, bytes)
 		}
 	}
+
 	// Bytes inner and string inner are same:
 	stateStoreBytesInner := func(ctxInner context.Context, m api.Module, i uint32, ptr uint32, size uint32) {
 		slot := "slot" + strconv.Itoa(int(i))
+		gasUsed += BaseStoreBytesComputeUnits + uint64(size)*StoreBytesIncComputeUnits
 		if bytes, ok := m.Memory().Read(ptr, size); !ok {
-			log.Panicln(ok)
+			hasEncError = true
+			gasUsed += WrongPointerOrLengthComputeUnits
 		} else {
 			storage.SetBytes(ctx, mu, contractAddress, slot, bytes)
 		}
@@ -197,9 +209,10 @@ func (t *TransactContract) Execute(
 	stateAppendArrayInner := func(ctxInner context.Context, m api.Module, i uint32, ptr uint32, size uint32) {
 		bytes, _ := m.Memory().Read(ptr, size)
 		slot := "slot" + strconv.Itoa(int(i))
-		arrayBytes, err := storage.GetBytes(ctx, mu, contractAddress, slot)
+		arrayBytes, _ := storage.GetBytes(ctx, mu, contractAddress, slot)
 		lenA := len(arrayBytes)
-		if err != nil {
+		gasUsed += BaseArrayComputeUnits + uint64(lenA*ArrayAppendComputeUnits)
+		if lenA == 0 {
 			storage.SetBytes(ctx, mu, contractAddress, slot, bytes)
 		} else {
 			arrayBytes2 := make([]byte, lenA+int(size))
@@ -214,6 +227,8 @@ func (t *TransactContract) Execute(
 		// fetch the array, remove the specified part and set the array to storage
 		arrayBytes, _ := storage.GetBytes(ctx, mu, contractAddress, slot) // decided to ignore the error, instead of reverting (if array did not exist --> but we need to revert for such a thing)
 		lenA := len(arrayBytes)
+		gasUsed += BaseArrayComputeUnits + uint64(lenA*ArrayPopComputeUnits)
+
 		if lenA >= int(position)*int(size) {
 			arrayBytes2 := make([]byte, lenA-int(size))
 			copy(arrayBytes2[0:position*size], arrayBytes[0:position*size])
@@ -226,6 +241,7 @@ func (t *TransactContract) Execute(
 		slot := "slot" + strconv.Itoa(int(i))
 		arrayBytes, _ := storage.GetBytes(ctx, mu, contractAddress, slot) // decided to ignore the error, instead of reverting (if array did not exist --> but we need to revert for such a thing)
 		lenA := len(arrayBytes)
+		gasUsed += BaseArrayComputeUnits + uint64(lenA*ArrayInsertComputeUnits)
 		if lenA >= int(position)*int(size) {
 			bytes, _ := m.Memory().Read(ptr, size)
 			arrayBytes2 := make([]byte, lenA+int(size))
@@ -240,6 +256,7 @@ func (t *TransactContract) Execute(
 		slot := "slot" + strconv.Itoa(int(i))
 		arrayBytes, _ := storage.GetBytes(ctx, mu, contractAddress, slot) // decided to ignore the error, instead of reverting (if array did not exist --> but we need to revert for such a thing)
 		lenA := len(arrayBytes)
+		gasUsed += BaseArrayComputeUnits + uint64(lenA*ArrayReplaceComputeUnits)
 		if lenA >= int(position)*int(size) {
 			bytes, _ := m.Memory().Read(ptr, size)
 			arrayBytes2 := make([]byte, lenA)
@@ -253,11 +270,13 @@ func (t *TransactContract) Execute(
 	stateDeleteArrayInner := func(ctxInner context.Context, m api.Module, i uint32) {
 		slot := "slot" + strconv.Itoa(int(i))
 		storage.SetBytes(ctx, mu, contractAddress, slot, []byte{})
+		gasUsed += ArrayDeleteComputeUnits
 	}
 
 	stateGetUintInner := func(ctxInner context.Context, m api.Module, i uint32) uint64 {
 		slot := "slot" + strconv.Itoa(int(i))
 		result, _ := storage.GetUint(ctx, mu, contractAddress, slot)
+		gasUsed += GetUintComputeUints
 		return result
 	}
 
@@ -265,61 +284,75 @@ func (t *TransactContract) Execute(
 		slot := "slot" + strconv.Itoa(int(i))
 		// convert []byte to uint to int and return
 		result, _ := storage.GetUint(ctx, mu, contractAddress, slot)
+		gasUsed += GetIntComputeUnits
 		return int64(result)
 	}
 
 	stateGetFloatInner := func(ctxInner context.Context, m api.Module, i uint32) float64 {
 		slot := "slot" + strconv.Itoa(int(i))
 		result, _ := storage.GetUint(ctx, mu, contractAddress, slot)
+		gasUsed += GetFloatComputeUnits
 		return math.Float64frombits(result)
 	}
 
 	//@todo Warning:⚠️ memory values given must be read immediately
 	stateGetStringInner := func(ctxInner context.Context, m api.Module, i uint32) uint64 {
 		slot := "slot" + strconv.Itoa(int(i))
-		//@todo these values cant be passed back, they can only get passed as pointers
+		//✅ @todo these values cant be passed back, they can only get passed as pointers
 		// and we need to deal with those pointers
 		result, _ := storage.GetBytes(ctx, mu, contractAddress, slot)
-		offset := uint32(111111)
-		// @todo need to work out something for access/scope types in go lang.
-		// we need to actually call allocate and allocate memory to string, instead of arbitarily choosing the memory location
-		m.Memory().Write(offset, result)
-		return uint64(offset)<<32 | uint64(len(result))
+		size := uint64(len(result))
+		results, _ := allocate_ptr.Call(ctxInner, size)
+		gasUsed += GetStringComputeUnits
+		offset := results[0]
+		//✅ @todo need to work out something for access/scope types in go lang.
+		//✅ we need to actually call allocate and allocate memory to string, instead of arbitarily choosing the memory location
+		m.Memory().Write(uint32(offset), result)
+		return uint64(offset)<<32 | size
 	}
 
 	stateGetBytesInner := func(ctxInner context.Context, m api.Module, i uint32) uint64 {
 		slot := "slot" + strconv.Itoa(int(i))
 		result, _ := storage.GetBytes(ctx, mu, contractAddress, slot)
-		offset := uint32(222222)
-		m.Memory().Write(offset, result)
-		return uint64(offset)<<32 | uint64(len(result))
+		size := uint64(len(result))
+		gasUsed += BaseGetBytesComputeUnits + uint64(size*GetBytesComputeUnits)
+		results, _ := allocate_ptr.Call(ctxInner, size)
+		offset := results[0]
+		m.Memory().Write(uint32(offset), result)
+		return uint64(offset)<<32 | size
 	}
 
 	stateGetArrayAtIndexInner := func(ctxInner context.Context, m api.Module, i uint32, size uint32, position uint32) uint64 {
 		slot := "slot" + strconv.Itoa(int(i))
 		result, _ := storage.GetBytes(ctx, mu, contractAddress, slot)
 		lenA := len(result)
+		gasUsed += BaseGetArrayComputeUnits + uint64(lenA*GetArrayIncComputeUnits)
 		if lenA >= int(position)*int(size) {
 			result2 := make([]byte, size)
 			copy(result2[:], result[position*size:(position+1)*size])
-			offset := uint32(333333)
-			m.Memory().Write(offset, result2)
-			return uint64(offset)<<32 | uint64(len(result))
+			size := uint64(lenA)
+			results, _ := allocate_ptr.Call(ctxInner, size)
+			offset := results[0]
+			m.Memory().Write(uint32(offset), result2)
+			return uint64(offset)<<32 | size
 		}
 		return 0 // ⚠️under progress, no errors or reverts are thrown for array out of bound
 	}
 
 	// @todo CALL ⚠️ under development, not supported yet
-	CALLInner := func(ctxInner context.Context, m api.Module, call_ptr uint32, call_len uint32) (uint32 /*bool*/, uint32 /*pointer*/, uint32 /*length*/) {
-		ext_call_struct := extcaller.Ext_call_struct{Ctx: ctx, Cr: cr, Mu: mu, Timestamp: timestamp, Auth: auth, TxID: txID}
-		txStatus, _ /*compute units*/, call_output, _ := ext_call_struct.External_call()
+	CALLInner := func(ctxInner context.Context, m api.Module, call_ptr uint32, call_len uint32) uint64 /*bool(16) || pointer(32) || length(16)*/ {
+		gasUsed += BaseCALLUnits
+		ext_call_struct := extcaller.Ext_call_struct{Ctx: ctx, Cr: cr, Mu: mu, Timestamp: timestamp, Auth: auth, TxID: txID} //@todo should make changes in extcaller.go
+		txStatus, call_compute_units /*compute units*/, call_output, _ := ext_call_struct.External_call()
+		gasUsed += call_compute_units
 		if !txStatus {
-			return 0, 0, 0
+			return 0
 		}
-		offset := uint32(444444)
-		length := len(call_output)
-		m.Memory().Write(offset, call_output)
-		return 1, offset, uint32(length)
+		size := uint64(len(call_output))
+		results, _ := allocate_ptr.Call(ctxInner, size)
+		offset := results[0]
+		m.Memory().Write(uint32(offset), call_output)
+		return uint64(1)<<48 | (uint64(offset) << 16) | size // why cant we pass 0 for false and any value for true execution
 	}
 
 	// @todo DELEGATECALL
@@ -348,18 +381,18 @@ func (t *TransactContract) Execute(
 		NewFunctionBuilder().WithFunc(DELEGATECALLInner).Export("DELEGATECALL").Instantiate(ctxWasm)
 	if errWasm != nil {
 		log.Panicln(errWasm)
-		return false, TempComputeUnits, utils.ErrBytes(errWasm), nil, nil
+		return false, gasUsed, utils.ErrBytes(errWasm), nil, nil
 	}
 
 	mod, err := r.Instantiate(ctxWasm, deployedCodeAtContractAddress)
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+		return false, gasUsed, utils.ErrBytes(err), nil, nil
 	}
 
 	// @todo load all required functions
 	allocate_chain_struct := mod.ExportedFunction("allocate_chain_struct")
 	deallocate_chain_struct := mod.ExportedFunction("deallocate_chain_struct")
-	allocate_ptr := mod.ExportedFunction("allocate_ptr")
+	allocate_ptr = mod.ExportedFunction("allocate_ptr")
 	deallocate_ptr := mod.ExportedFunction("deallocate_ptr")
 	txFunction := mod.ExportedFunction(function)
 
@@ -368,7 +401,7 @@ func (t *TransactContract) Execute(
 	// codec.Address -> AddressLen -> 33bytes
 	results, err := allocate_ptr.Call(ctxWasm, uint64(msgSenderLen))
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+		return false, gasUsed, utils.ErrBytes(err), nil, nil
 	}
 	addressPtr := results[0]
 	chainInputStruct := ChainStruct{timestamp: timestamp, msgValue: msgValue, msgSenderPtr: uint32(addressPtr), msgSenderLen: uint32(msgSenderLen)}
@@ -377,7 +410,7 @@ func (t *TransactContract) Execute(
 
 	results, err = allocate_chain_struct.Call(ctxWasm)
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+		return false, gasUsed, utils.ErrBytes(err), nil, nil
 	}
 	chainStructPtr := results[0]
 	defer deallocate_chain_struct.Call(ctxWasm, chainStructPtr)
@@ -385,7 +418,7 @@ func (t *TransactContract) Execute(
 	inputSize := uint64(unsafe.Sizeof(inputBytes))
 	results, err = allocate_ptr.Call(ctxWasm, inputSize)
 	if err != nil {
-		return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+		return false, gasUsed, utils.ErrBytes(err), nil, nil
 	}
 	inputPtr := results[0]
 	defer deallocate_ptr.Call(ctxWasm, inputPtr, inputSize)
@@ -412,7 +445,7 @@ func (t *TransactContract) Execute(
 	if inputParamCount == 2 {
 		result, err := txFunction.Call(ctxWasm, chainStructPtr, inputPtr)
 		if err != nil {
-			return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+			return false, gasUsed, utils.ErrBytes(err), nil, nil
 		}
 		if outputParamCount == 1 {
 			// @todo we receive a pointer--> retrieve the value underlying the pointer and pass as output
@@ -420,18 +453,18 @@ func (t *TransactContract) Execute(
 			outPtrSize := uint32(result[0])
 			output, ok := mod.Memory().Read(outPtr, outPtrSize) // @todo test it
 			if !ok {
-				return false, TempComputeUnits, []byte("cant read from memory"), nil, nil
+				return false, gasUsed, []byte("cant read from memory"), nil, nil
 			}
-			return true, 0, output, nil, nil
+			return !hasEncError, gasUsed, output, nil, nil
 		}
 		if outputParamCount == 0 {
-			return true, 0, nil, nil, nil
+			return !hasEncError, 0, nil, nil, nil
 		}
 	}
 	if inputParamCount == 1 {
 		result, err := txFunction.Call(ctxWasm, chainStructPtr)
 		if err != nil {
-			return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+			return false, gasUsed, utils.ErrBytes(err), nil, nil
 		}
 		if outputParamCount == 1 {
 			// @todo we receive a pointer--> retrieve the value underlying the pointer and pass as output
@@ -439,18 +472,18 @@ func (t *TransactContract) Execute(
 			outPtrSize := uint32(result[0])
 			output, ok := mod.Memory().Read(outPtr, outPtrSize) // @todo test it
 			if !ok {
-				return false, TempComputeUnits, []byte("cant read from memory"), nil, nil
+				return false, gasUsed, []byte("cant read from memory"), nil, nil
 			}
-			return true, 0, output, nil, nil
+			return !hasEncError, gasUsed, output, nil, nil
 		}
 		if outputParamCount == 0 {
-			return true, 0, nil, nil, nil
+			return !hasEncError, gasUsed, nil, nil, nil
 		}
 	}
 	if inputParamCount == 0 {
 		result, err := txFunction.Call(ctxWasm)
 		if err != nil {
-			return false, TempComputeUnits, utils.ErrBytes(err), nil, nil
+			return false, gasUsed, utils.ErrBytes(err), nil, nil
 		}
 		if outputParamCount == 1 {
 			// @todo we receive a pointer--> retrieve the value underlying the pointer and pass as output
@@ -458,15 +491,15 @@ func (t *TransactContract) Execute(
 			outPtrSize := uint32(result[0])
 			output, ok := mod.Memory().Read(outPtr, outPtrSize) // @todo test it
 			if !ok {
-				return false, TempComputeUnits, []byte("cant read from memory"), nil, nil
+				return false, gasUsed, []byte("cant read from memory"), nil, nil
 			}
-			return true, 0, output, nil, nil
+			return !hasEncError, gasUsed, output, nil, nil
 		}
 		if outputParamCount == 0 {
-			return true, 0, nil, nil, nil
+			return !hasEncError, gasUsed, nil, nil, nil
 		}
 	}
-	return false, TempComputeUnits, nil, nil, nil //@todo if we reach here, abi is not implimented by the function
+	return false, gasUsed, nil, nil, nil //@todo if we reach here, abi is not implimented by the function
 }
 
 func structToBytes(c ChainStruct) []byte {
@@ -476,21 +509,3 @@ func structToBytes(c ChainStruct) []byte {
 	bytes := (*[1 << 30]byte)(unsafe.Pointer(&c))[:size:size]
 	return bytes
 }
-
-// @todo CALL
-func CALL() {}
-
-// @todo DELEGATECALL
-func DELEGATECALL() {}
-
-//@todo steps to follow in completing the programme.
-// dealing with inputs --> custom input struct & user sent input struct
-// call, delegatecall w same ways
-// gas metering for memory
-//
-//
-//
-//
-
-//@todo value transfer can be supported using chain.Auth
-// we can use auth

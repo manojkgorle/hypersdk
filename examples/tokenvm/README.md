@@ -8,15 +8,14 @@
 ---
 
 ## Todo
-
 - Seperate Hyper-Wasm VM from tokenVM.
 - Hyper-Wasm-Sdk standardisation and abstraction.
-- Proper offset and pointer dealings
+- Proper offset and pointer dealings ✅.
 - Write reusable go components.
 - Sample Smart contracts.
 - Add support for crypto libraries.
 - Functional MsgValue and contract balance.
-- Compute units metering.
+- Compute units metering ✅.
 
 ## Rules:
  - Declare public functions as extern with C layout, e.g., pub extern "C" fn simplefunction()
