@@ -27,7 +27,7 @@ type VM interface {
 		txs []*chain.Transaction,
 	) (errs []error)
 	LastAcceptedBlock() *chain.StatelessBlock
-	LastL1Head() string
+	LastL1Head() int64
 	UnitPrices(context.Context) (chain.Dimensions, error)
 	GetOutgoingWarpMessage(ids.ID) (*warp.UnsignedMessage, error)
 	GetWarpSignatures(ids.ID) ([]*chain.WarpSignature, error)

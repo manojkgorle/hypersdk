@@ -73,9 +73,9 @@ func (vm *VM) LastAcceptedBlock() *chain.StatelessBlock {
 	return vm.lastAccepted
 }
 
-func (vm *VM) LastL1Head() string {
+func (vm *VM) LastL1Head() int64 {
 	// var f = <-vm.subCh
-	return vm.L1Head
+	return vm.L1Head.Int64()
 }
 
 func (vm *VM) IsBootstrapped() bool {

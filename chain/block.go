@@ -29,7 +29,7 @@ import (
 	"github.com/AnomalyFi/hypersdk/workers"
 
 	ethhex "github.com/ethereum/go-ethereum/common/hexutil"
-	ethrpc "github.com/ethereum/go-ethereum/rpc"
+	ethclient "github.com/ethereum/go-ethereum/ethclient"
 )
 
 var (
@@ -45,7 +45,7 @@ type StatefulBlock struct {
 
 	Txs []*Transaction `json:"txs"`
 
-	L1Head string `json:"l1_head"`
+	L1Head int64 `json:"l1_head"`
 
 	// StateRoot is the root of the post-execution state
 	// of [Prnt].
@@ -95,25 +95,24 @@ func NewGenesisBlock(root ids.ID) *StatefulBlock {
 	//num := (ethhex.Big)(*b)
 	//TODO need to add in Ethereum Block here
 
-	ethereumNodeURL := "https://0.0.0.0:8545"
+	ethereumNodeURL := "https://devnet.nodekit.xyz"
 
 	// Create an RPC client
-	client, err := ethrpc.Dial(ethereumNodeURL)
+	//client, err := ethrpc.Dial(ethereumNodeURL)
+	client, err := ethclient.Dial(ethereumNodeURL)
+
 	if err != nil {
 		fmt.Errorf("Failed to connect to the Ethereum client: %v", err)
 	}
 
-	// Get the latest block number
-	var blockNumber ethhex.Uint64
-	err = client.Call(&blockNumber, "eth_blockNumber")
+	header, err := client.HeaderByNumber(context.Background(), nil)
+
 	if err != nil {
 		fmt.Errorf("Failed to retrieve the latest block number: %v", err)
 	}
 
-	fmt.Printf("Latest Ethereum block number: %d\n", blockNumber)
-
 	return &StatefulBlock{
-		L1Head: blockNumber.String(),
+		L1Head: header.Number.Int64(),
 		// We set the genesis block timestamp to be after the ProposerVM fork activation.
 		//
 		// This prevents an issue (when using millisecond timestamps) during ProposerVM activation
@@ -1087,7 +1086,7 @@ func (b *StatefulBlock) Marshal() ([]byte, error) {
 	// }
 	// p.PackBytes(head)
 
-	p.PackString(b.L1Head)
+	p.PackInt64(b.L1Head)
 
 	p.PackID(b.StateRoot)
 	p.PackUint64(uint64(b.WarpResults))
@@ -1131,7 +1130,7 @@ func UnmarshalBlock(raw []byte, parser Parser) (*StatefulBlock, error) {
 
 	// bytes := make([]byte, dimensionStateLen*FeeDimensions)
 
-	b.L1Head = p.UnpackString(false)
+	b.L1Head = p.UnpackInt64(false)
 
 	// num.UnmarshalText(headBytes)
 
