@@ -95,7 +95,7 @@ func NewGenesisBlock(root ids.ID) *StatefulBlock {
 	//num := (ethhex.Big)(*b)
 	//TODO need to add in Ethereum Block here
 
-	ethereumNodeURL := "https://devnet.nodekit.xyz"
+	ethereumNodeURL := "http://localhost:8545"
 
 	// Create an RPC client
 	//client, err := ethrpc.Dial(ethereumNodeURL)

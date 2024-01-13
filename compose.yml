@@ -14,7 +14,6 @@ services:
   #
 
   l1:
-    #image: ghcr.io/espressosystems/op-espresso-integration/l1:integration
     build:
       context: .
       dockerfile: Dockerfile
@@ -26,5 +25,5 @@ services:
       - "l1_data:/db"
       - "${PWD}/genesis-l1.json:/genesis.json"
       - "${PWD}/test-jwt-secret.txt:/config/test-jwt-secret.txt"
-
- 
+    environment:
+      GETH_MINER_RECOMMIT: 100ms
