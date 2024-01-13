@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math/big"
 	"net/http"
 	"sync"
 	"time"
@@ -132,8 +133,9 @@ type VM struct {
 
 	subCh chan chain.ETHBlock
 
-	L1Head string
-	mu     sync.Mutex
+	L1Head *big.Int
+	//string
+	mu sync.Mutex
 }
 
 func New(c Controller, v *version.Semantic) *VM {
@@ -162,6 +164,7 @@ func (vm *VM) Initialize(
 	vm.seenValidityWindow = make(chan struct{})
 	vm.ready = make(chan struct{})
 	vm.stop = make(chan struct{})
+	vm.L1Head = big.NewInt(0)
 
 	vm.subCh = make(chan chain.ETHBlock)
 
@@ -1161,7 +1164,7 @@ func (vm *VM) ETHL1HeadSubscribe() {
 	go func() {
 		for i := 0; ; i++ {
 			if i > 0 {
-				time.Sleep(1 * time.Second)
+				time.Sleep(500 * time.Millisecond)
 			}
 			subscribeBlocks(client, vm.subCh)
 		}
@@ -1171,7 +1174,13 @@ func (vm *VM) ETHL1HeadSubscribe() {
 	go func() {
 		for block := range vm.subCh {
 			vm.mu.Lock()
-			vm.L1Head = block.Number.String()
+			//block.Number.String()
+			head := block.Number.ToInt()
+			if head.Cmp(vm.L1Head) < 1 {
+				//This block is not newer than the current block which can occur because of an L1 reorg.
+				continue
+			}
+			vm.L1Head = block.Number.ToInt()
 			fmt.Println("latest block:", block.Number)
 			vm.mu.Unlock()
 		}
@@ -1200,6 +1209,7 @@ func subscribeBlocks(client *ethrpc.Client, subch chan chain.ETHBlock) {
 		fmt.Println("can't get latest block:", err)
 		return
 	}
+
 	subch <- lastBlock
 
 	// The subscription will deliver events to the channel. Wait for the
