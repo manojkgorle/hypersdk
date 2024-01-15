@@ -1,3 +1,5 @@
+## View ./examples/tokenvm for Hyper-wasm
+
 <p align="center">
   <img width="90%" alt="hypersdk" src="assets/logo.png">
 </p>
