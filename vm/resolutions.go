@@ -211,6 +211,10 @@ func (vm *VM) processAcceptedBlock(b *chain.StatelessBlock) {
 		vm.warpManager.GatherSignatures(context.TODO(), tx.ID(), result.WarpMessage.Bytes())
 	}
 
+	// commit/sign block hash root
+	if err := vm.StoreBlockCommitHash(b.Height(), b.StateRoot); err != nil {
+		vm.Fatal("unable to store block commit hash", zap.Error(err))
+	}
 	// Update server
 	if err := vm.webSocketServer.AcceptBlock(b); err != nil {
 		vm.Fatal("unable to accept block in websocket server", zap.Error(err))

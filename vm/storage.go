@@ -12,16 +12,16 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/keys"
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ethereum/go-ethereum/crypto"
 	"go.uber.org/zap"
-
-	"github.com/AnomalyFi/hypersdk/chain"
-	"github.com/AnomalyFi/hypersdk/consts"
-	"github.com/AnomalyFi/hypersdk/keys"
 )
 
 // compactionOffset is used to randomize the height that we compact
@@ -34,16 +34,20 @@ func init() {
 }
 
 const (
-	blockPrefix         = 0x0
-	warpSignaturePrefix = 0x1
-	warpFetchPrefix     = 0x2
+	blockPrefix           = 0x0
+	warpSignaturePrefix   = 0x1
+	warpFetchPrefix       = 0x2
+	blockCommitHashPrefix = 0x3
+	publicKeyBytes        = 48
 )
 
 var (
-	isSyncing    = []byte("is_syncing")
-	lastAccepted = []byte("last_accepted")
-
-	signatureLRU = &cache.LRU[string, *chain.WarpSignature]{Size: 1024}
+	isSyncing                     = []byte("is_syncing")
+	lastAccepted                  = []byte("last_accepted")
+	lastBlockCommitHash           = []byte("last_block_commit_hash")
+	signatureLRU                  = &cache.LRU[string, *chain.WarpSignature]{Size: 1024}
+	blockCommitHashLRU            = &cache.LRU[string, []byte]{Size: 2048}
+	unProcessedBlockCommitHashLRU = &cache.LRU[string, ids.ID]{Size: 128}
 )
 
 func PrefixBlockHeightKey(height uint64) []byte {
@@ -59,6 +63,14 @@ func (vm *VM) HasGenesis() (bool, error) {
 
 func (vm *VM) GetGenesis() (*chain.StatefulBlock, error) {
 	return vm.GetDiskBlock(0)
+}
+
+func (vm *VM) GetLastBlockCommitHash() (uint64, error) {
+	h, err := vm.vmDB.Get(lastBlockCommitHash)
+	if err != nil {
+		return 0, err
+	}
+	return binary.BigEndian.Uint64(h), nil
 }
 
 func (vm *VM) SetLastAcceptedHeight(height uint64) error {
@@ -260,3 +272,97 @@ func (vm *VM) GetWarpFetch(txID ids.ID) (int64, error) {
 	}
 	return int64(binary.BigEndian.Uint64(v)), nil
 }
+
+func PrefixBlockCommitHashKey(height uint64) []byte {
+	k := make([]byte, 1+consts.Uint64Len)
+	k[0] = blockCommitHashPrefix
+	k = binary.BigEndian.AppendUint64(k, height)
+	return k
+}
+
+func PackValidatorsData(initBytes []byte, PublicKey *bls.PublicKey, weight uint64) []byte {
+	// @todo ensure the encoding match solidity libraries encoding for bls & keccak
+	pbKeyBytes := bls.PublicKeyToBytes(PublicKey)
+	return binary.BigEndian.AppendUint64(pbKeyBytes, weight)
+}
+
+func (vm *VM) CacheUnprocessedBlockCommitHash(height uint64, stateRoot ids.ID) {
+	k := PrefixBlockCommitHashKey(height)
+	unProcessedBlockCommitHashLRU.Put(string(k), stateRoot)
+}
+
+func (vm *VM) StoreBlockCommitHash(height uint64, stateRoot ids.ID) error {
+	// err handling cases:
+	// vdrState access error: dont panic & quit recover
+	// cant sign or cant store panic & throuw error for res to handle
+	lh, err := vm.GetLastBlockCommitHash()
+	if err != nil {
+		vm.Logger().Error("could not get last block commit hash", zap.Error(err))
+		return err
+	}
+	// in most cases only single block commit hash is not stored due to referesh proposermonitor by gossiper, but we should be able to handle 30-40 block commit hash generation failures
+	// we try storing block commit hashes in order, if storing fails at a intermediate # we stop there and return. this gives us the determinism to sign blocks in order & not miss signing some block in the middle with its surrounding blocks signed
+	if height != lh+1 {
+		diff := height - lh
+		for i := 0; i < int(diff); i++ {
+			k := PrefixBlockCommitHashKey(lh + uint64(i))
+			stateRootFromCache, ok := unProcessedBlockCommitHashLRU.Get(string(k))
+			if !ok {
+				return fmt.Errorf("cant find from cache") //@todo if cant find from cache, fatal quit, but see how it behaves during syncing and restart
+			}
+			if err := vm.innerStoreBlockCommitHash(lh, stateRootFromCache); err != nil {
+				if errors.Is(err, ErrAccesingVdrState) {
+					return nil
+				} //@todo concrete testing needed for error handling
+				return fmt.Errorf("error in mid clearance of block commit hash queue")
+			}
+		}
+	}
+	return vm.innerStoreBlockCommitHash(height, stateRoot)
+}
+
+func (vm *VM) innerStoreBlockCommitHash(height uint64, stateRoot ids.ID) error {
+	validators, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.TODO(), height, vm.SubnetID())
+	if err != nil {
+		vm.Logger().Error("could not access validator set", zap.Error(err))
+		vm.CacheUnprocessedBlockCommitHash(height, stateRoot)
+		return ErrAccesingVdrState
+	}
+	// Pack public keys & weight of individual validators as given in the canonical validator set
+	validatorDataBytes := make([]byte, len(validators)*(publicKeyBytes+consts.Uint64Len))
+	for _, validator := range validators {
+		nVdrDataBytes := PackValidatorsData(validatorDataBytes, validator.PublicKey, validator.Weight)
+		validatorDataBytes = append(validatorDataBytes, nVdrDataBytes...)
+	}
+	// hashing to scale for any number of validators. warp messaging has a msg size limit of 256 KiB
+	vdrDataBytesHash := crypto.Keccak256(validatorDataBytes)
+	k := PrefixBlockCommitHashKey(height)
+	msg := append(vdrDataBytesHash, stateRoot[:]...)
+	unSigMsg, err := warp.NewUnsignedMessage(vm.NetworkID(), vm.ChainID(), msg)
+	if err != nil {
+		return fmt.Errorf("%w: unable to create new unsigned warp message", unSigMsg) // @todo do proper error handling
+	}
+	signedMsg, err := vm.snowCtx.WarpSigner.Sign(unSigMsg)
+	if err != nil {
+		return fmt.Errorf("%w: unable to sign block commit hash at block height %d", err, height)
+	}
+	batch := vm.vmDB.NewBatch()
+	if err := batch.Put(k, signedMsg); err != nil {
+		return err
+	}
+	if err := batch.Put(lastBlockCommitHash, binary.BigEndian.AppendUint64(nil, height)); err != nil {
+		return err
+	}
+	if err := batch.Write(); err != nil {
+		return fmt.Errorf("%w: unable to store block commit hash on disk at height %d", err, height)
+	}
+	blockCommitHashLRU.Put(string(k), signedMsg)
+	// transmit signature
+	vm.webSocketServer.SendBlockCommitHash(signedMsg, height)
+	vm.Logger().Info("stored block commit hash", zap.Uint64("block height", height))
+	return nil
+}
+
+//@todo define a getter for previous signed messages
+// proper error handling for block commit hash case
+// if in case, the commit hash is no where in cache or storage ask to sign and send again. no complex logic. naive. simple

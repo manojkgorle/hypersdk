@@ -22,11 +22,11 @@ type WebSocketServer struct {
 	logger logging.Logger
 	s      *pubsub.Server
 
-	blockListeners *pubsub.Connections
-
-	txL         sync.Mutex
-	txListeners map[ids.ID]*pubsub.Connections
-	expiringTxs *emap.EMap[*chain.Transaction] // ensures all tx listeners are eventually responded to
+	blockListeners           *pubsub.Connections
+	blockCommitHashListeners *pubsub.Connections
+	txL                      sync.Mutex
+	txListeners              map[ids.ID]*pubsub.Connections
+	expiringTxs              *emap.EMap[*chain.Transaction] // ensures all tx listeners are eventually responded to
 }
 
 func NewWebSocketServer(vm VM, maxPendingMessages int) (*WebSocketServer, *pubsub.Server) {
@@ -129,6 +129,20 @@ func (w *WebSocketServer) AcceptBlock(b *chain.StatelessBlock) error {
 	return nil
 }
 
+func (w *WebSocketServer) SendBlockCommitHash(signedMsg []byte, height uint64) error {
+	if w.blockCommitHashListeners.Len() > 0 {
+		bytes, err := PackBlockCommitHashMessage(height, signedMsg)
+		if err != nil {
+			return err
+		}
+		inactiveConnection := w.s.Publish(append([]byte{BlockCommitHashMode}, bytes...), w.blockCommitHashListeners)
+		for _, conn := range inactiveConnection {
+			w.blockCommitHashListeners.Remove(conn)
+		}
+	}
+	return nil
+}
+
 func (w *WebSocketServer) MessageCallback(vm VM) pubsub.Callback {
 	// Assumes controller is initialized before this is called
 	var (
@@ -190,6 +204,9 @@ func (w *WebSocketServer) MessageCallback(vm VM) pubsub.Callback {
 				return
 			}
 			log.Debug("submitted tx", zap.Stringer("id", txID))
+		case BlockCommitHashMode:
+			w.blockCommitHashListeners.Add(c)
+			log.Debug("added block commit hash listener")
 		default:
 			log.Error("unexpected message type",
 				zap.Int("len", len(msgBytes)),

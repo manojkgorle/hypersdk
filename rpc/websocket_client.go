@@ -26,8 +26,9 @@ type WebSocketClient struct {
 	writeStopped chan struct{}
 	readStopped  chan struct{}
 
-	pendingBlocks chan []byte
-	pendingTxs    chan []byte
+	pendingBlocks          chan []byte
+	pendingTxs             chan []byte
+	pendingBlockCommitHash chan []byte
 
 	startedClose bool
 	closed       bool
@@ -56,12 +57,13 @@ func NewWebSocketClient(uri string, handshakeTimeout time.Duration, pending int,
 	}
 	resp.Body.Close()
 	wc := &WebSocketClient{
-		conn:          conn,
-		mb:            pubsub.NewMessageBuffer(&logging.NoLog{}, pending, maxSize, pubsub.MaxMessageWait),
-		readStopped:   make(chan struct{}),
-		writeStopped:  make(chan struct{}),
-		pendingBlocks: make(chan []byte, pending),
-		pendingTxs:    make(chan []byte, pending),
+		conn:                   conn,
+		mb:                     pubsub.NewMessageBuffer(&logging.NoLog{}, pending, maxSize, pubsub.MaxMessageWait),
+		readStopped:            make(chan struct{}),
+		writeStopped:           make(chan struct{}),
+		pendingBlocks:          make(chan []byte, pending),
+		pendingTxs:             make(chan []byte, pending),
+		pendingBlockCommitHash: make(chan []byte, pending),
 	}
 	go func() {
 		defer close(wc.readStopped)
@@ -89,6 +91,8 @@ func NewWebSocketClient(uri string, handshakeTimeout time.Duration, pending int,
 					wc.pendingBlocks <- tmsg
 				case TxMode:
 					wc.pendingTxs <- tmsg
+				case BlockCommitHashMode:
+					wc.pendingBlockCommitHash <- tmsg
 				default:
 					utils.Outf("{{orange}}unexpected message mode:{{/}} %x\n", msg[0])
 					continue
@@ -169,6 +173,24 @@ func (c *WebSocketClient) ListenTx(ctx context.Context) (ids.ID, error, *chain.R
 		return ids.Empty, nil, nil, c.err
 	case <-ctx.Done():
 		return ids.Empty, nil, nil, ctx.Err()
+	}
+}
+
+func (c *WebSocketClient) RegisterBlockCommitHash() error {
+	if c.closed {
+		return ErrClosed
+	}
+	return c.mb.Send([]byte{BlockCommitHashMode})
+}
+
+func (c *WebSocketClient) ListenBlockCommitHash(ctx context.Context) (uint64, []byte, error) {
+	select {
+	case msg := <-c.pendingBlockCommitHash:
+		return UnPackBlockCommitHashMessage(msg)
+	case <-c.readStopped:
+		return 0, nil, c.err
+	case <-ctx.Done():
+		return 0, nil, ctx.Err()
 	}
 }
 
