@@ -22,9 +22,11 @@ func (*SequencerMsg) Route() string { return "SequencerMsg" }
 func (*SequencerMsg) ValidateBasic() error {
 	return nil
 }
+
 func (m *SequencerMsg) GetSigners() string {
 	return m.FromAddress
 }
+
 func (m *SequencerMsg) XXX_MessageName() string {
 	return "SequencerMsg"
 }

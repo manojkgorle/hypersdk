@@ -45,7 +45,7 @@ func UnmarshalWarpBlock(b []byte) (*WarpBlock, error) {
 	if err := p.Err(); err != nil {
 		return nil, err
 	}
-	var ErrInvalidObjectDecode = errors.New("invalid object")
+	ErrInvalidObjectDecode := errors.New("invalid object")
 	if !p.Empty() {
 		return nil, ErrInvalidObjectDecode
 	}

@@ -347,7 +347,7 @@ func BuildBlock(
 					fmt.Println("WE GOT INSIDE Builder")
 					block, err := UnmarshalWarpBlock(next.WarpMessage.UnsignedMessage.Payload)
 
-					//TODO panic: runtime error: invalid memory address or nil pointer dereference.
+					// TODO panic: runtime error: invalid memory address or nil pointer dereference.
 					// We cant get this block and then we compare it to the parent which causes issues
 					parentWarpBlock, err := vm.GetStatelessBlock(ctx, block.Prnt)
 					if err != nil {

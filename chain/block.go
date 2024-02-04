@@ -91,22 +91,20 @@ type warpJob struct {
 }
 
 func NewGenesisBlock(root ids.ID) *StatefulBlock {
-	//b, _ := new(big.Int).SetString("2", 16)
-	//num := (ethhex.Big)(*b)
-	//TODO need to add in Ethereum Block here
+	// b, _ := new(big.Int).SetString("2", 16)
+	// num := (ethhex.Big)(*b)
+	// TODO need to add in Ethereum Block here
 
 	ethereumNodeURL := "http://localhost:8545"
 
 	// Create an RPC client
-	//client, err := ethrpc.Dial(ethereumNodeURL)
+	// client, err := ethrpc.Dial(ethereumNodeURL)
 	client, err := ethclient.Dial(ethereumNodeURL)
-
 	if err != nil {
 		fmt.Errorf("Failed to connect to the Ethereum client: %v", err)
 	}
 
 	header, err := client.HeaderByNumber(context.Background(), nil)
-
 	if err != nil {
 		fmt.Errorf("Failed to retrieve the latest block number: %v", err)
 	}
@@ -482,7 +480,7 @@ func (b *StatelessBlock) verifyWarpMessage(ctx context.Context, r Rules, msg *wa
 func (b *StatelessBlock) verifyWarpBlock(ctx context.Context, r Rules, msg *warp.Message) (bool, error) {
 	block, err := UnmarshalWarpBlock(msg.UnsignedMessage.Payload)
 
-	//TODO it is failing right here
+	// TODO it is failing right here
 
 	parentWarpBlock, err := b.vm.GetStatelessBlock(ctx, block.Prnt)
 	if err != nil {
@@ -614,7 +612,7 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 					start := time.Now()
 					verified := b.verifyWarpMessage(ctx, r, msg.msg)
 					if msg.requiresBlock && verified {
-						//TODO might need to do something with this error
+						// TODO might need to do something with this error
 						verifiedBlockRoots, _ := b.verifyWarpBlock(ctx, r, msg.msg)
 						msg.verifiedRootsChan <- verifiedBlockRoots
 						msg.verifiedRoots = verifiedBlockRoots
@@ -642,7 +640,7 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 					// block) to avoid doing extra work.
 					msg.verifiedChan <- blockVerified
 					msg.verified = blockVerified
-					//TODO might need to fix this to verify
+					// TODO might need to fix this to verify
 					msg.verifiedRootsChan <- blockVerified
 					msg.verifiedRoots = blockVerified
 				}

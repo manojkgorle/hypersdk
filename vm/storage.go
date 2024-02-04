@@ -286,8 +286,8 @@ func ToID(key []byte) (ids.ID, error) {
 	dummy := make([]byte, 23)
 	k = append(k, dummy...)
 	return ids.ToID(k)
-
 }
+
 func PackValidatorsData(initBytes []byte, PublicKey *bls.PublicKey, weight uint64) []byte {
 	// @todo ensure the encoding match solidity libraries encoding for bls & keccak
 	pbKeyBytes := bls.PublicKeyToBytes(PublicKey)
@@ -331,7 +331,6 @@ func (vm *VM) StoreBlockCommitHash(height uint64, stateRoot ids.ID) error {
 		hash, err := vm.GetUnprocessedBlockCommitHash(lh)
 		if err != nil {
 			vm.Logger().Error("could not retrieve last unprocessed block hash", zap.Error(err))
-
 		} else {
 			if err := vm.innerStoreBlockCommitHash(lh, hash); err != nil {
 				if errors.Is(err, ErrAccesingVdrState) {

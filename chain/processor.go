@@ -152,7 +152,7 @@ func (p *Processor) Execute(
 		// TODO: parallel execution will greatly improve performance when actions
 		// start taking longer than a few ns (i.e. with hypersdk programs).
 		var warpVerified bool
-		var blockVerified = true
+		blockVerified := true
 		warpMsg, ok := p.blk.warpMessages[tx.ID()]
 		if ok {
 			select {
@@ -161,7 +161,7 @@ func (p *Processor) Execute(
 				return nil, nil, ctx.Err()
 			}
 		}
-		//result, err := tx.Execute(ctx, feeManager, authCUs, txData.coldReads, txData.warmReads, sm, r, ts, t, ok && warpVerified)
+		// result, err := tx.Execute(ctx, feeManager, authCUs, txData.coldReads, txData.warmReads, sm, r, ts, t, ok && warpVerified)
 		if ok && tx.VerifyBlock {
 			select {
 			case blockVerified = <-warpMsg.verifiedRootsChan:
