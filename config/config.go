@@ -39,7 +39,7 @@ func (c *Config) GetStateSyncServerDelay() time.Duration { return 0 } // used fo
 
 func (c *Config) GetParsedBlockCacheSize() int  { return 128 }
 func (c *Config) GetStateHistoryLength() int    { return 256 }
-func (c *Config) GetAcceptedBlockWindow() int   { return 768 }
+func (c *Config) GetAcceptedBlockWindow() int   { return 50_000 }
 func (c *Config) GetStateSyncMinBlocks() uint64 { return 768 }
 func (c *Config) GetAcceptorSize() int          { return 1024 }
 

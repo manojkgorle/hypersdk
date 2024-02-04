@@ -1051,6 +1051,17 @@ func (vm *VM) GetBlockIDAtHeight(_ context.Context, height uint64) (ids.ID, erro
 	return ids.ID{}, database.ErrNotFound
 }
 
+func (vm *VM) GetBlockStateRootAtHeight(_ context.Context, height uint64) (ids.ID, error) {
+	blkID, ok := vm.acceptedBlocksByHeight.Get(height)
+	if !ok {
+		return ids.ID{}, database.ErrNotFound
+	}
+	if blk, ok := vm.acceptedBlocksByID.Get(blkID); ok {
+		return blk.StateRoot, nil
+	}
+	return ids.ID{}, database.ErrNotFound
+}
+
 // backfillSeenTransactions makes a best effort to populate [vm.seen]
 // with whatever transactions we already have on-disk. This will lead
 // a node to becoming ready faster during a restart.

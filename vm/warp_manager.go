@@ -6,6 +6,7 @@ package vm
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"sync"
 	"time"
@@ -227,25 +228,32 @@ func (w *WarpManager) AppRequest(
 		return nil
 	}
 	if sig == nil {
-		// Generate and save signature if it does not exist but is in state (may
-		// have been offline when message was accepted)
-		msg, err := w.vm.GetOutgoingWarpMessage(txID)
-		if msg == nil || err != nil {
-			w.vm.snowCtx.Log.Warn("could not get outgoing warp message", zap.Error(err))
-			return nil
-		}
-		rSig, err := w.vm.snowCtx.WarpSigner.Sign(msg)
-		if err != nil {
-			w.vm.snowCtx.Log.Warn("could not sign outgoing warp message", zap.Error(err))
-			return nil
-		}
-		if err := w.vm.StoreWarpSignature(txID, w.vm.snowCtx.PublicKey, rSig); err != nil {
-			w.vm.snowCtx.Log.Warn("could not store warp signature", zap.Error(err))
-			return nil
-		}
-		sig = &chain.WarpSignature{
-			PublicKey: w.vm.pkBytes,
-			Signature: rSig,
+		if bytes.Equal(txID[9:], make([]byte, 23)) {
+			// get block state root from cache or disk & store block commit hash-> the initial check should not bother us.
+			height := binary.BigEndian.Uint64(txID[1:9])
+			w.vm.GetBlockStateRootAtHeight(context.TODO(), height) // returns stateRoot, only if in acceptedBlockWindow. should be sufficient
+
+		} else {
+			// Generate and save signature if it does not exist but is in state (may
+			// have been offline when message was accepted)
+			msg, err := w.vm.GetOutgoingWarpMessage(txID)
+			if msg == nil || err != nil {
+				w.vm.snowCtx.Log.Warn("could not get outgoing warp message", zap.Error(err))
+				return nil
+			}
+			rSig, err := w.vm.snowCtx.WarpSigner.Sign(msg)
+			if err != nil {
+				w.vm.snowCtx.Log.Warn("could not sign outgoing warp message", zap.Error(err))
+				return nil
+			}
+			if err := w.vm.StoreWarpSignature(txID, w.vm.snowCtx.PublicKey, rSig); err != nil {
+				w.vm.snowCtx.Log.Warn("could not store warp signature", zap.Error(err))
+				return nil
+			}
+			sig = &chain.WarpSignature{
+				PublicKey: w.vm.pkBytes,
+				Signature: rSig,
+			}
 		}
 	}
 	size := len(sig.PublicKey) + len(sig.Signature)
