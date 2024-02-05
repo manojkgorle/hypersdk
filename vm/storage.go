@@ -324,7 +324,7 @@ func (vm *VM) StoreBlockCommitHash(height uint64, stateRoot ids.ID) error {
 	// attempts for commiting height-1 block hash is not commited.
 	// Any block hash is left uncommited, relayers may ask to commit.
 	// not processing all non commited block hashs, as that may cause further nuances in signing the current block hash
-	if height == lh+1 {
+	if height != lh+1 {
 		hash, err := vm.GetUnprocessedBlockCommitHash(lh)
 		if err != nil {
 			vm.Logger().Error("could not retrieve last unprocessed block hash", zap.Error(err))
