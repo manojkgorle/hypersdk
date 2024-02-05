@@ -19,7 +19,7 @@ type RestServer struct {
 	logger logging.Logger
 	s      *home
 
-	//blockListeners *pubsub.Connections
+	// blockListeners *pubsub.Connections
 
 	txL         sync.Mutex
 	txListeners map[ids.ID]*pubsub.Connections
@@ -35,13 +35,13 @@ func (h *home) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func NewRestServer(vm VM, maxPendingMessages int) (*RestServer, *home) {
 	r := &RestServer{
 		logger: vm.Logger(),
-		//blockListeners: pubsub.NewConnections(),
+		// blockListeners: pubsub.NewConnections(),
 		txListeners: map[ids.ID]*pubsub.Connections{},
 		expiringTxs: emap.NewEMap[*chain.Transaction](),
 	}
 	cfg := pubsub.NewDefaultServerConfig()
 	cfg.MaxPendingMessages = maxPendingMessages
-	//w.s = pubsub.New(w.logger, cfg, w.MessageCallback(vm))
+	// w.s = pubsub.New(w.logger, cfg, w.MessageCallback(vm))
 	// router := mux.NewRouter()
 	// router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 	// 	w.Write([]byte("Hello World!"))
@@ -53,7 +53,7 @@ func NewRestServer(vm VM, maxPendingMessages int) (*RestServer, *home) {
 	// router.HandleFunc("/blocks/transactions/{id}/{namespace}", r.getBlockTransactionsByNamespace).Methods("GET")
 	h := home{}
 	r.s = &h
-	//router
+	// router
 	return r, r.s
 }
 

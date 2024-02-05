@@ -466,7 +466,7 @@ var _ = ginkgo.Describe("load tests vm", func() {
 	})
 
 	ginkgo.It("verifies blocks", func() {
-		//TODO this is where the first function is called
+		// TODO this is where the first function is called
 		for i, instance := range instances[1:] {
 			log.Warn("sleeping 10s before starting verification", zap.Int("instance", i+1))
 			time.Sleep(10 * time.Second)
@@ -492,8 +492,8 @@ func issueSequencerSimpleTx(
 		},
 		nil,
 		&actions.SequencerMsg{
-			Data:  []byte{0x00, 0x01, 0x02},
-			ChainId:  []byte{0x00, 0x01, 0x02},
+			Data:        []byte{0x00, 0x01, 0x02},
+			ChainId:     []byte{0x00, 0x01, 0x02},
 			FromAddress: to,
 		},
 	)
@@ -504,7 +504,6 @@ func issueSequencerSimpleTx(
 	_, err = i.cli.SubmitTx(context.TODO(), tx.Bytes())
 	return tx.ID(), err
 }
-
 
 func issueSimpleTx(
 	i *instance,

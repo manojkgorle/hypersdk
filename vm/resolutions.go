@@ -211,7 +211,7 @@ func (vm *VM) processAcceptedBlock(b *chain.StatelessBlock) {
 		vm.warpManager.GatherSignatures(context.TODO(), tx.ID(), result.WarpMessage.Bytes())
 	}
 
-	// commit/sign block hash root
+	// commit/sign block hash root -> store & propagate like warp messages, so we can use hypersdk code for the most part of relayers
 	if err := vm.StoreBlockCommitHash(b.Height(), b.StateRoot); err != nil {
 		vm.Fatal("unable to store block commit hash", zap.Error(err))
 	}

@@ -101,7 +101,7 @@ type VM struct {
 	// Transactions that streaming users are currently subscribed to
 	webSocketServer *rpc.WebSocketServer
 
-	//restServer *rpc.RestServer
+	// restServer *rpc.RestServer
 
 	// sigWorkers are used to verify signatures in parallel
 	// with limited parallelism
@@ -134,7 +134,7 @@ type VM struct {
 	subCh chan chain.ETHBlock
 
 	L1Head *big.Int
-	//string
+	// string
 	mu sync.Mutex
 }
 
@@ -774,8 +774,8 @@ func (vm *VM) buildBlock(ctx context.Context, blockContext *smblock.Context) (sn
 	}
 	blk, err := chain.BuildBlock(ctx, vm, preferredBlk, blockContext)
 	if err != nil {
-		//TODO add back
-		//vm.snowCtx.Log.Info("BuildBlock failed", zap.Error(err))
+		// TODO add back
+		// vm.snowCtx.Log.Info("BuildBlock failed", zap.Error(err))
 		return nil, err
 	}
 	vm.parsedBlocks.Put(blk.ID(), blk)
@@ -1051,6 +1051,17 @@ func (vm *VM) GetBlockIDAtHeight(_ context.Context, height uint64) (ids.ID, erro
 	return ids.ID{}, database.ErrNotFound
 }
 
+func (vm *VM) GetBlockStateRootAtHeight(_ context.Context, height uint64) (ids.ID, error) {
+	blkID, ok := vm.acceptedBlocksByHeight.Get(height)
+	if !ok {
+		return ids.ID{}, database.ErrNotFound
+	}
+	if blk, ok := vm.acceptedBlocksByID.Get(blkID); ok {
+		return blk.StateRoot, nil
+	}
+	return ids.ID{}, database.ErrNotFound
+}
+
 // backfillSeenTransactions makes a best effort to populate [vm.seen]
 // with whatever transactions we already have on-disk. This will lead
 // a node to becoming ready faster during a restart.
@@ -1153,12 +1164,10 @@ func (vm *VM) Fatal(msg string, fields ...zap.Field) {
 	panic("fatal error")
 }
 
-//TODO below is new
-
+// TODO below is new
 func (vm *VM) ETHL1HeadSubscribe() {
 	// Start the Ethereum L1 head subscription.
 	client, _ := ethrpc.Dial("ws://0.0.0.0:8546")
-	//subch := make(chan ETHBlock)
 
 	// Ensure that subch receives the latest block.
 	go func() {
@@ -1174,18 +1183,17 @@ func (vm *VM) ETHL1HeadSubscribe() {
 	go func() {
 		for block := range vm.subCh {
 			vm.mu.Lock()
-			//block.Number.String()
+			// block.Number.String()
 			head := block.Number.ToInt()
 			if head.Cmp(vm.L1Head) < 1 {
-				//This block is not newer than the current block which can occur because of an L1 reorg.
+				// This block is not newer than the current block which can occur because of an L1 reorg.
 				continue
 			}
-			vm.L1Head = block.Number.ToInt()
+			vm.L1Head = head
 			fmt.Println("latest block:", block.Number)
 			vm.mu.Unlock()
 		}
 	}()
-
 }
 
 // subscribeBlocks runs in its own goroutine and maintains
