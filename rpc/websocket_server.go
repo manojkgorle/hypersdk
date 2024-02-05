@@ -31,10 +31,11 @@ type WebSocketServer struct {
 
 func NewWebSocketServer(vm VM, maxPendingMessages int) (*WebSocketServer, *pubsub.Server) {
 	w := &WebSocketServer{
-		logger:         vm.Logger(),
-		blockListeners: pubsub.NewConnections(),
-		txListeners:    map[ids.ID]*pubsub.Connections{},
-		expiringTxs:    emap.NewEMap[*chain.Transaction](),
+		logger:                   vm.Logger(),
+		blockListeners:           pubsub.NewConnections(),
+		blockCommitHashListeners: pubsub.NewConnections(),
+		txListeners:              map[ids.ID]*pubsub.Connections{},
+		expiringTxs:              emap.NewEMap[*chain.Transaction](),
 	}
 	cfg := pubsub.NewDefaultServerConfig()
 	cfg.MaxPendingMessages = maxPendingMessages

@@ -1168,7 +1168,6 @@ func (vm *VM) Fatal(msg string, fields ...zap.Field) {
 func (vm *VM) ETHL1HeadSubscribe() {
 	// Start the Ethereum L1 head subscription.
 	client, _ := ethrpc.Dial("ws://0.0.0.0:8546")
-	// subch := make(chan ETHBlock)
 
 	// Ensure that subch receives the latest block.
 	go func() {
@@ -1190,7 +1189,7 @@ func (vm *VM) ETHL1HeadSubscribe() {
 				// This block is not newer than the current block which can occur because of an L1 reorg.
 				continue
 			}
-			vm.L1Head = block.Number.ToInt()
+			vm.L1Head = head
 			fmt.Println("latest block:", block.Number)
 			vm.mu.Unlock()
 		}
