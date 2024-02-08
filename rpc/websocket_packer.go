@@ -110,18 +110,20 @@ func UnpackTxMessage(msg []byte) (ids.ID, error, *chain.Result, error) {
 	return txID, nil, result, p.Err()
 }
 
-func PackBlockCommitHashMessage(height uint64, msg []byte) ([]byte, error) {
-	size := codec.BytesLen(msg) + consts.Uint64Len
+func PackBlockCommitHashMessage(height uint64, pHeight uint64, msg []byte) ([]byte, error) {
+	size := codec.BytesLen(msg) + 2*consts.Uint64Len
 	p := codec.NewWriter(size, consts.MaxInt)
 	p.PackUint64(height)
+	p.PackUint64(pHeight)
 	p.PackBytes(msg)
 	return p.Bytes(), p.Err()
 }
 
-func UnPackBlockCommitHashMessage(msg []byte) (uint64, []byte, error) {
+func UnPackBlockCommitHashMessage(msg []byte) (uint64, uint64, []byte, error) {
 	p := codec.NewReader(msg, consts.MaxInt)
 	height := p.UnpackUint64(true)
+	pHeight := p.UnpackUint64(true)
 	var signedMsg []byte
 	p.UnpackBytes(-1, true, &signedMsg)
-	return height, signedMsg, p.Err()
+	return height, pHeight, signedMsg, p.Err()
 }

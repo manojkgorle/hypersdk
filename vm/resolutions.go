@@ -210,9 +210,12 @@ func (vm *VM) processAcceptedBlock(b *chain.StatelessBlock) {
 		// verified before they are persisted.
 		vm.warpManager.GatherSignatures(context.TODO(), tx.ID(), result.WarpMessage.Bytes())
 	}
-
+	pHeight, err := vm.snowCtx.ValidatorState.GetCurrentHeight(context.Background())
+	if err != nil {
+		vm.Fatal("unable to get p chain height", zap.Error(err))
+	}
 	// commit/sign block hash root -> store & propagate like warp messages, so we can use hypersdk code for the most part of relayers
-	if err := vm.StoreBlockCommitHash(b.Height(), b.StateRoot); err != nil {
+	if err := vm.StoreBlockCommitHash(b.Height(), pHeight, b.StateRoot); err != nil {
 		vm.Fatal("unable to store block commit hash", zap.Error(err))
 	}
 	// Update server
