@@ -240,10 +240,9 @@ func (w *WarpManager) AppRequest(
 			}
 			vm := w.vm
 			// see innerBlockCommitHash for comments
-			validators, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.TODO(), height, vm.SubnetID())
+			validators, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.TODO(), height, vm.SubnetID()) //@todo store a map for SEQ blocks & P-chain block
 			if err != nil {
 				vm.Logger().Error("could not access validator set", zap.Error(err))
-				vm.StoreUnprocessedBlockCommitHash(height, stateRoot)
 				return nil
 			}
 			validatorDataBytes := make([]byte, len(validators)*(publicKeyBytes+consts.Uint64Len))

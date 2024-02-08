@@ -291,24 +291,26 @@ func PackValidatorsData(initBytes []byte, PublicKey *bls.PublicKey, weight uint6
 	return append(initBytes, binary.BigEndian.AppendUint64(pbKeyBytes, weight)...)
 }
 
-func (vm *VM) StoreUnprocessedBlockCommitHash(height uint64, stateRoot ids.ID) {
+func (vm *VM) StoreUnprocessedBlockCommitHash(height uint64, pHeight uint64, stateRoot ids.ID) {
 	k := PrefixBlockCommitHashKey(height)
-	if err := vm.vmDB.Put(k, stateRoot[:]); err != nil {
+	h := binary.BigEndian.AppendUint64(stateRoot[:], pHeight)
+	if err := vm.vmDB.Put(k, h); err != nil {
 		vm.Fatal("Could not store unprocessed block commit hash", zap.Error(err))
 	}
 }
 
-func (vm *VM) GetUnprocessedBlockCommitHash(height uint64) (ids.ID, error) {
+func (vm *VM) GetUnprocessedBlockCommitHash(height uint64) (uint64, ids.ID, error) {
 	k := PrefixBlockCommitHashKey(height)
 	v, err := vm.vmDB.Get(k)
 	if err != nil {
-		return ids.Empty, err
+		return 0, ids.Empty, err
 	}
-	vID, err := ids.ToID(v)
+	vID, err := ids.ToID(v[:32])
 	if err != nil {
-		return ids.Empty, err
+		return 0, ids.Empty, err
 	}
-	return vID, nil
+	pHeight := binary.BigEndian.Uint64(v[32:])
+	return pHeight, vID, nil
 }
 
 func (vm *VM) StoreBlockCommitHash(height uint64, pBlockHeight uint64, stateRoot ids.ID) error {
@@ -322,11 +324,11 @@ func (vm *VM) StoreBlockCommitHash(height uint64, pBlockHeight uint64, stateRoot
 	}
 
 	if height != lh+1 {
-		hash, err := vm.GetUnprocessedBlockCommitHash(height - 1)
+		pHeight, hash, err := vm.GetUnprocessedBlockCommitHash(height - 1)
 		if err != nil {
 			vm.Logger().Error("could not retrieve last unprocessed block hash", zap.Error(err))
 		} else {
-			if err := vm.innerStoreBlockCommitHash(height-1, pBlockHeight, hash); err != nil {
+			if err := vm.innerStoreBlockCommitHash(height-1, pHeight, hash); err != nil {
 				if errors.Is(err, ErrAccesingVdrState) {
 					return nil
 				} //@todo concrete testing needed for error handling
@@ -348,7 +350,7 @@ func (vm *VM) innerStoreBlockCommitHash(height uint64, pBlkHeight uint64, stateR
 	validators, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.Background(), pBlkHeight, vm.SubnetID())
 	if err != nil {
 		vm.Logger().Error("could not access validator set", zap.Error(err))
-		vm.StoreUnprocessedBlockCommitHash(height, stateRoot)
+		vm.StoreUnprocessedBlockCommitHash(height, pBlkHeight, stateRoot)
 		return ErrAccesingVdrState
 	}
 	// Pack public keys & weight of individual validators as given in the canonical validator set
@@ -382,7 +384,7 @@ func (vm *VM) innerStoreBlockCommitHash(height uint64, pBlkHeight uint64, stateR
 	}
 	blockCommitHashLRU.Put(string(k), signedMsg)
 
-	vm.webSocketServer.SendBlockCommitHash(signedMsg, height)                      // transmit signature to listeners i.e. relayer
+	vm.webSocketServer.SendBlockCommitHash(signedMsg, height, pBlkHeight)          // transmit signature to listeners i.e. relayer
 	vm.warpManager.GatherSignatures(context.TODO(), keyPrefixed, unSigMsg.Bytes()) // transmit as a warp message
 	vm.Logger().Info("stored block commit hash", zap.Uint64("block height", height))
 	return nil
