@@ -247,9 +247,9 @@ func Wait(ctx context.Context, check func(ctx context.Context) (bool, error)) er
 	return ctx.Err()
 }
 
-// getCanonicalValidatorSet returns the validator set of [subnetID] in a canonical ordering.
+// GetCanonicalValidatorSet returns the validator set of [subnetID] in a canonical ordering.
 // Also returns the total weight on [subnetID].
-func getCanonicalValidatorSet(
+func GetCanonicalValidatorSet(
 	_ context.Context,
 	vdrSet map[ids.NodeID]*validators.GetValidatorOutput,
 ) ([]*warp.Validator, uint64, error) {
@@ -299,7 +299,7 @@ func (cli *JSONRPCClient) GenerateAggregateWarpSignature(
 	}
 
 	// Get canonical validator ordering to generate signature bit set
-	canonicalValidators, weight, err := getCanonicalValidatorSet(ctx, validators)
+	canonicalValidators, weight, err := GetCanonicalValidatorSet(ctx, validators)
 	if err != nil {
 		return nil, 0, 0, fmt.Errorf("%w: failed to get canonical validator set", err)
 	}
@@ -355,7 +355,7 @@ func (cli *JSONRPCClient) GatherWarpSignatureEVMInfo(
 	}
 
 	// Get canonical validator ordering to generate signature bit set
-	canonicalValidators, weight, err := getCanonicalValidatorSet(ctx, validators)
+	canonicalValidators, weight, err := GetCanonicalValidatorSet(ctx, validators)
 	if err != nil {
 		return nil, nil, nil, 0, fmt.Errorf("%w: failed to get canonical validator set", err)
 	}

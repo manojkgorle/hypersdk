@@ -16,4 +16,5 @@ var (
 	ErrUnexpectedStateRoot = errors.New("unexpected state root")
 	ErrTooManyProcessing   = errors.New("too many processing")
 	ErrAccesingVdrState    = errors.New("can't access vdr state")
+	ErrCanonicalOrdering   = errors.New("can't order validators set canonically")
 )
