@@ -1092,6 +1092,17 @@ func (vm *VM) backfillSeenTransactions() {
 	)
 }
 
+func (vm *VM) GetBlockStateRootAtHeight(_ context.Context, height uint64) (ids.ID, error) {
+	blkID, ok := vm.acceptedBlocksByHeight.Get(height)
+	if !ok {
+		return ids.ID{}, database.ErrNotFound
+	}
+	if blk, ok := vm.acceptedBlocksByID.Get(blkID); ok {
+		return blk.StateRoot, nil
+	}
+	return ids.ID{}, database.ErrNotFound
+}
+
 func (vm *VM) loadAcceptedBlocks(ctx context.Context) error {
 	start := uint64(0)
 	lookback := uint64(vm.config.GetAcceptedBlockWindowCache()) - 1 // include latest

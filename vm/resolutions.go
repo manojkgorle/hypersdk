@@ -207,6 +207,11 @@ func (vm *VM) processAcceptedBlock(b *chain.StatelessBlock) {
 		vm.warpManager.GatherSignatures(context.TODO(), tx.ID(), result.WarpMessage.Bytes())
 	}
 
+	//@todo store vdrStateHash + BlockHash
+	if err := vm.StoreBlockCommitHash(b.Height(), b.StateRoot); err != nil {
+		vm.Fatal("unable to store block commit hash r", zap.Error(err))
+	}
+
 	// Update server
 	if err := vm.webSocketServer.AcceptBlock(b); err != nil {
 		vm.Fatal("unable to accept block in websocket server", zap.Error(err))
@@ -214,7 +219,7 @@ func (vm *VM) processAcceptedBlock(b *chain.StatelessBlock) {
 	// Must clear accepted txs before [SetMinTx] or else we will errnoueously
 	// send [ErrExpired] messages.
 	if err := vm.webSocketServer.SetMinTx(b.Tmstmp); err != nil {
-		vm.Fatal("unable to set min tx in websocket server", zap.Error(err))
+		vm.snowCtx.Log.Error("unable to set min tx in websocket server", zap.Error(err))
 	}
 
 	// Update price metrics
