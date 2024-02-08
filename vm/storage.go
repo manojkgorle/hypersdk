@@ -311,7 +311,7 @@ func (vm *VM) GetUnprocessedBlockCommitHash(height uint64) (ids.ID, error) {
 	return vID, nil
 }
 
-func (vm *VM) StoreBlockCommitHash(height uint64, stateRoot ids.ID) error {
+func (vm *VM) StoreBlockCommitHash(height uint64, pBlockHeight uint64, stateRoot ids.ID) error {
 	// err handling cases:
 	// vdrState access error: dont panic & quit recover
 	// cant sign or cant store panic & throuw error for res to handle
@@ -320,16 +320,13 @@ func (vm *VM) StoreBlockCommitHash(height uint64, stateRoot ids.ID) error {
 		vm.Logger().Error("could not get last block commit hash", zap.Error(err))
 		return err
 	}
-	// may not access validator state from snowCtx, when proposer monitor refreshes at the same time, so validator can not commit for that block hash.
-	// attempts for commiting height-1 block hash is not commited.
-	// Any block hash is left uncommited, relayers may ask to commit.
-	// not processing all non commited block hashs, as that may cause further nuances in signing the current block hash
+
 	if height != lh+1 {
-		hash, err := vm.GetUnprocessedBlockCommitHash(lh)
+		hash, err := vm.GetUnprocessedBlockCommitHash(height - 1)
 		if err != nil {
 			vm.Logger().Error("could not retrieve last unprocessed block hash", zap.Error(err))
 		} else {
-			if err := vm.innerStoreBlockCommitHash(lh, hash); err != nil {
+			if err := vm.innerStoreBlockCommitHash(height-1, pBlockHeight, hash); err != nil {
 				if errors.Is(err, ErrAccesingVdrState) {
 					return nil
 				} //@todo concrete testing needed for error handling
@@ -337,7 +334,7 @@ func (vm *VM) StoreBlockCommitHash(height uint64, stateRoot ids.ID) error {
 			}
 		}
 	}
-	if err := vm.innerStoreBlockCommitHash(height, stateRoot); err != nil {
+	if err := vm.innerStoreBlockCommitHash(height, pBlockHeight, stateRoot); err != nil {
 		if errors.Is(err, ErrAccesingVdrState) {
 			return nil
 		} else {
@@ -347,9 +344,13 @@ func (vm *VM) StoreBlockCommitHash(height uint64, stateRoot ids.ID) error {
 	return nil
 }
 
-func (vm *VM) innerStoreBlockCommitHash(height uint64, stateRoot ids.ID) error {
-	validators, _ := vm.proposerMonitor.Validators(context.TODO())
-
+func (vm *VM) innerStoreBlockCommitHash(height uint64, pBlkHeight uint64, stateRoot ids.ID) error {
+	validators, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.Background(), pBlkHeight, vm.SubnetID())
+	if err != nil {
+		vm.Logger().Error("could not access validator set", zap.Error(err))
+		vm.StoreUnprocessedBlockCommitHash(height, stateRoot)
+		return ErrAccesingVdrState
+	}
 	// Pack public keys & weight of individual validators as given in the canonical validator set
 	validatorDataBytes := make([]byte, len(validators)*(publicKeyBytes+consts.Uint64Len))
 	for _, validator := range validators {
