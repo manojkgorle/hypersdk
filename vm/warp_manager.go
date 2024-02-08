@@ -15,6 +15,7 @@ import (
 	"github.com/AnomalyFi/hypersdk/codec"
 	"github.com/AnomalyFi/hypersdk/consts"
 	"github.com/AnomalyFi/hypersdk/heap"
+	"github.com/AnomalyFi/hypersdk/rpc"
 	"github.com/AnomalyFi/hypersdk/utils"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
@@ -233,17 +234,22 @@ func (w *WarpManager) AppRequest(
 		if bytes.Equal(txID[9:], make([]byte, 23)) {
 			// get block state root from cache or disk & store block commit hash-> the initial check should not bother us.
 			height := binary.BigEndian.Uint64(txID[1:9])
-			stateRoot, err := w.vm.GetBlockStateRootAtHeight(context.TODO(), height) // returns stateRoot, only if in acceptedBlockWindow. should be sufficient
+			pHeight, stateRoot, err := w.vm.GetUnprocessedBlockCommitHash(height) // returns stateRoot, only if in acceptedBlockWindow. should be sufficient
 			if err != nil {
-				w.vm.snowCtx.Log.Warn("not in cache")
+				w.vm.snowCtx.Log.Warn("unable to access unprocessed block commit hash")
 				return nil
 			}
 			vm := w.vm
 			// see innerBlockCommitHash for comments
-			validators, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.TODO(), height, vm.SubnetID()) //@todo store a map for SEQ blocks & P-chain block
+			vdrSet, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.TODO(), pHeight, vm.SubnetID())
 			if err != nil {
 				vm.Logger().Error("could not access validator set", zap.Error(err))
 				return nil
+			}
+			validators, _, err := rpc.GetCanonicalValidatorSet(context.Background(), vdrSet)
+			if err != nil {
+				vm.Logger().Error("unable to get canonical validator set", zap.Error(err))
+				return ErrCanonicalOrdering
 			}
 			validatorDataBytes := make([]byte, len(validators)*(publicKeyBytes+consts.Uint64Len))
 			for _, validator := range validators {

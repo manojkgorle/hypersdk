@@ -15,6 +15,7 @@ import (
 	"github.com/AnomalyFi/hypersdk/chain"
 	"github.com/AnomalyFi/hypersdk/consts"
 	"github.com/AnomalyFi/hypersdk/keys"
+	"github.com/AnomalyFi/hypersdk/rpc"
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
@@ -347,12 +348,20 @@ func (vm *VM) StoreBlockCommitHash(height uint64, pBlockHeight uint64, stateRoot
 }
 
 func (vm *VM) innerStoreBlockCommitHash(height uint64, pBlkHeight uint64, stateRoot ids.ID) error {
-	validators, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.Background(), pBlkHeight, vm.SubnetID())
+	// -- make a new function @todo
+	vdrSet, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.Background(), pBlkHeight, vm.SubnetID())
 	if err != nil {
 		vm.Logger().Error("could not access validator set", zap.Error(err))
 		vm.StoreUnprocessedBlockCommitHash(height, pBlkHeight, stateRoot)
 		return ErrAccesingVdrState
 	}
+	validators, _, err := rpc.GetCanonicalValidatorSet(context.Background(), vdrSet)
+	if err != nil {
+		vm.Logger().Error("unable to get canonical validator set", zap.Error(err))
+		vm.StoreUnprocessedBlockCommitHash(height, pBlkHeight, stateRoot)
+		return ErrCanonicalOrdering
+	}
+	// -- till here @todo
 	// Pack public keys & weight of individual validators as given in the canonical validator set
 	validatorDataBytes := make([]byte, len(validators)*(publicKeyBytes+consts.Uint64Len))
 	for _, validator := range validators {
