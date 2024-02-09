@@ -275,15 +275,15 @@ func (vm *VM) GetWarpFetch(txID ids.ID) (int64, error) {
 
 // to ensure compatibility with warpManager.go; we prefix prefixed key with prefixWarpSignatureKey
 func PrefixBlockCommitHashKey(height uint64) []byte {
-	k := make([]byte, 1)
+	k := make([]byte, 1+consts.Uint64Len)
 	k[0] = blockCommitHashPrefix
-	k = binary.BigEndian.AppendUint64(k, height)
+	binary.BigEndian.PutUint64(k, height)
 	return k
 }
 
 func ToID(key []byte) (ids.ID, error) {
 	k := make([]byte, consts.IDLen)
-	copy(k[1:9], key[:])
+	copy(k[:9], key[:])
 	return ids.ToID(k)
 }
 
