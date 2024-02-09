@@ -141,7 +141,7 @@ func (j *JSONRPCServer) GetWarpSignatures(
 	defer span.End()
 
 	message, err := j.vm.GetOutgoingWarpMessage(args.TxID)
-	if err != nil {
+	if err != nil && args.TxID[0] != blockCommitHashPrefix {
 		return err
 	}
 	if message == nil && args.TxID[0] != blockCommitHashPrefix {
