@@ -144,7 +144,7 @@ func (j *JSONRPCServer) GetWarpSignatures(
 	if err != nil {
 		return err
 	}
-	if message == nil {
+	if message == nil && args.TxID[0] != blockCommitHashPrefix {
 		return ErrMessageMissing
 	}
 

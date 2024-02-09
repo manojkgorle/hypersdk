@@ -135,7 +135,7 @@ func (cli *JSONRPCClient) GetWarpSignatures(
 		return nil, nil, nil, err
 	}
 	// Ensure message is initialized
-	if err := resp.Message.Initialize(); err != nil {
+	if err := resp.Message.Initialize(); err != nil && txID[1] != blockCommitHashPrefix {
 		return nil, nil, nil, err
 	}
 	m := map[ids.NodeID]*validators.GetValidatorOutput{}
@@ -152,6 +152,9 @@ func (cli *JSONRPCClient) GetWarpSignatures(
 			vout.PublicKey = pk
 		}
 		m[vdr.NodeID] = vout
+	}
+	if txID[1] == blockCommitHashPrefix {
+		return nil, m, resp.Signatures, nil
 	}
 	return resp.Message, m, resp.Signatures, nil
 }
