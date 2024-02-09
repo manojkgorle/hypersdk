@@ -12,4 +12,6 @@ const (
 	RESTAPIEndpoint   = "/restapi"
 
 	DefaultHandshakeTimeout = 10 * time.Second
+
+	blockCommitHashPrefix = 0x3
 )
