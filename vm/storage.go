@@ -181,6 +181,15 @@ func (vm *VM) PutDiskIsSyncing(v bool) error {
 }
 
 func (vm *VM) GetOutgoingWarpMessage(txID ids.ID) (*warp.UnsignedMessage, error) {
+	if txID[0] == blockCommitHashPrefix {
+		height := binary.BigEndian.Uint64(txID[1:9])
+		b, err := vm.GetProcessedBlockCommitHash(height)
+		if err != nil {
+			return nil, err
+		}
+		return warp.ParseUnsignedMessage(b)
+	}
+
 	p := vm.c.StateManager().OutgoingWarpKeyPrefix(txID)
 	k := keys.EncodeChunks(p, chain.MaxOutgoingWarpChunks)
 	vs, errs := vm.ReadState(context.TODO(), [][]byte{k})
@@ -281,10 +290,10 @@ func PrefixBlockCommitHashKey(height uint64) []byte {
 	return k
 }
 
-func ToID(key []byte) (ids.ID, error) {
-	k := make([]byte, consts.IDLen)
+func ToID(key []byte) ids.ID {
+	k := ids.ID{}
 	copy(k[:9], key[:])
-	return ids.ToID(k)
+	return k
 }
 
 func PackValidatorsData(initBytes []byte, PublicKey *bls.PublicKey, weight uint64) []byte {
@@ -312,6 +321,18 @@ func (vm *VM) GetUnprocessedBlockCommitHash(height uint64) (uint64, ids.ID, erro
 	}
 	pHeight := binary.BigEndian.Uint64(v[32:])
 	return pHeight, vID, nil
+}
+
+func (vm *VM) StoreProcessedBlockCommitHash(height uint64, stateRoot []byte) {
+	k := PrefixBlockCommitHashKey(height)
+	if err := vm.vmDB.Put(k, stateRoot[:]); err != nil {
+		vm.Fatal("Could not store processed block commit hash", zap.Error(err))
+	}
+}
+
+func (vm *VM) GetProcessedBlockCommitHash(height uint64) ([]byte, error) {
+	k := PrefixBlockCommitHashKey(height)
+	return vm.vmDB.Get(k)
 }
 
 func (vm *VM) StoreBlockCommitHash(height uint64, pBlockHeight uint64, stateRoot ids.ID) error {
@@ -372,15 +393,14 @@ func (vm *VM) innerStoreBlockCommitHash(height uint64, pBlkHeight uint64, stateR
 	vdrDataBytesHash := crypto.Keccak256(validatorDataBytes)
 	k := PrefixBlockCommitHashKey(height) // key-size: 9 bytes
 	// prefix k with warpPrefixKey to ensure compatiblity with warpManager.go for gossip of warp messages, to ensure minimal relayer build
-	keyPrefixed, err := ToID(k)
-	if err != nil {
-		vm.Fatal("%w: unable to prefix block commit hash key", zap.Error(err))
-	}
+	keyPrefixed := ToID(k)
+
 	msg := append(vdrDataBytesHash, stateRoot[:]...)
 	unSigMsg, err := warp.NewUnsignedMessage(vm.NetworkID(), vm.ChainID(), msg)
 	if err != nil {
 		vm.Fatal("unable to create new unsigned warp message", zap.Error(err))
 	}
+	vm.StoreProcessedBlockCommitHash(height, unSigMsg.Bytes())
 	signedMsg, err := vm.snowCtx.WarpSigner.Sign(unSigMsg)
 	if err != nil {
 		vm.Fatal("unable to sign block commit hash", zap.Error(err), zap.Uint64("height:", height))
