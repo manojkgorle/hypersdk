@@ -22,6 +22,7 @@ import (
 const (
 	refreshTime            = 30 * time.Second
 	proposerMonitorLRUSize = 60
+	orchestratorSize       = 3
 )
 
 type ProposerMonitor struct {
@@ -138,4 +139,20 @@ func (p *ProposerMonitor) Validators(
 		return nil, nil
 	}
 	return p.validators, p.validatorPublicKeys
+}
+
+func (p *ProposerMonitor) GetOrchestrator(
+	ctx context.Context,
+	blockHeight,
+	pChainHeight uint64,
+) ([]*ids.NodeID, error) {
+	orchestrators := []*ids.NodeID{}
+	for i := uint64(0); i < orchestratorSize; i++ {
+		nodeID, err := p.proposer.ExpectedProposer(ctx, blockHeight, pChainHeight, i)
+		if err != nil {
+			return nil, err
+		}
+		orchestrators = append(orchestrators, &nodeID)
+	}
+	return orchestrators, nil
 }

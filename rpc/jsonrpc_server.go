@@ -149,6 +149,7 @@ func (j *JSONRPCServer) GetWarpSignatures(
 	if err != nil {
 		return err
 	}
+
 	if message == nil {
 		return ErrMessageMissing
 	}
@@ -197,5 +198,28 @@ func (j *JSONRPCServer) GetWarpSignatures(
 	reply.Message = message
 	reply.Validators = warpValidators
 	reply.Signatures = validSignatures
+	return nil
+}
+
+type GetOrchestratorArgs struct {
+	PBlockHeight uint64 `json:"pBlockHeight"`
+	BlockHeight  uint64 `json:"blockHeight"`
+}
+type GetOrchestratorReply struct {
+	Orchestrators []*ids.NodeID `json:"orchestrators"`
+}
+
+func (j *JSONRPCServer) GetOrchestrator(
+	req *http.Request,
+	args *GetOrchestratorArgs,
+	reply *GetOrchestratorReply,
+) error {
+	ctx, span := j.vm.Tracer().Start(req.Context(), "JSONRPCServer.GetOrchestrator")
+	defer span.End()
+	orchestrators, err := j.vm.GetOrchestrator(ctx, args.BlockHeight, args.PBlockHeight)
+	if err != nil {
+		return err
+	}
+	reply.Orchestrators = orchestrators
 	return nil
 }

@@ -21,7 +21,6 @@ import (
 	"github.com/ava-labs/hypersdk/consts"
 	"github.com/ava-labs/hypersdk/heap"
 	"github.com/ava-labs/hypersdk/utils"
-	"github.com/ethereum/go-ethereum/crypto"
 	"go.uber.org/zap"
 )
 
@@ -226,41 +225,25 @@ func (w *WarpManager) AppRequest(
 	}
 	sig, err := w.vm.GetWarpSignature(txID, w.vm.snowCtx.PublicKey)
 	if err != nil {
-		w.vm.snowCtx.Log.Warn("could not fetch warp signature", zap.Error(err))
+		w.vm.snowCtx.Log.Warn("could not fetch warp signature", zap.Error(err), zap.ByteString("txID", txID[:]))
 		return nil
 	}
-	if sig == nil {
-		if bytes.Equal(txID[9:], make([]byte, 23)) {
+	if sig == nil { // why are we doing this -> to counter POG s implementation
+		if txID[0] == 0x5 {
 			// get block state root from cache or disk & store block commit hash-> the initial check should not bother us.
 			height := binary.BigEndian.Uint64(txID[1:9])
-			stateRoot, err := w.vm.GetBlockStateRootAtHeight(context.TODO(), height) // returns stateRoot, only if in acceptedBlockWindow. should be sufficient
-			if err != nil {
-				w.vm.snowCtx.Log.Warn("not in cache")
-				return nil
-			}
-			vm := w.vm
-			// see innerBlockCommitHash for comments
-			validators, err := vm.snowCtx.ValidatorState.GetValidatorSet(context.TODO(), height, vm.SubnetID())
-			if err != nil {
-				vm.Logger().Error("could not access validator set", zap.Error(err))
-				vm.StoreUnprocessedBlockCommitHash(height, stateRoot)
-				return nil
-			}
-			validatorDataBytes := make([]byte, len(validators)*(publicKeyBytes+consts.Uint64Len))
-			for _, validator := range validators {
-				nVdrDataBytes := PackValidatorsData(validatorDataBytes, validator.PublicKey, validator.Weight)
-				validatorDataBytes = append(validatorDataBytes, nVdrDataBytes...)
-			}
-			vdrDataBytesHash := crypto.Keccak256(validatorDataBytes)
 			k := PrefixBlockCommitHashKey(height)
-			keyPrefixed, err := ToID(k)
+			keyPrefixed := ToID(k)
+			vm := w.vm
+			b, err := vm.GetProcessedBlockCommitHash(height)
 			if err != nil {
-				w.vm.snowCtx.Log.Warn("%w: unable to prefix block commit hash key", zap.Error(err))
+				lh, _ := w.vm.GetLastAcceptedHeight()
+				w.vm.snowCtx.Log.Warn("not a valid height", zap.Error(err), zap.Uint64("height", height), zap.Uint64("last accepted height", lh))
+				return nil
 			}
-			msg := append(vdrDataBytesHash, stateRoot[:]...)
-			unSigMsg, err := warp.NewUnsignedMessage(vm.NetworkID(), vm.ChainID(), msg)
+			unSigMsg, err := warp.ParseUnsignedMessage(b)
 			if err != nil {
-				w.vm.snowCtx.Log.Warn("unable to create new unsigned warp message", zap.Error(err))
+				w.vm.snowCtx.Log.Warn("unable to parse unsigned warp message", zap.Error(err))
 			}
 			signedMsg, err := vm.snowCtx.WarpSigner.Sign(unSigMsg)
 			if err != nil {

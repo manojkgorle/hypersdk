@@ -130,9 +130,9 @@ func (w *WebSocketServer) AcceptBlock(b *chain.StatelessBlock) error {
 	return nil
 }
 
-func (w *WebSocketServer) SendBlockCommitHash(signedMsg []byte, height uint64) error {
+func (w *WebSocketServer) SendBlockCommitHash(signedMsg []byte, height uint64, pHeight uint64, txID ids.ID) error {
 	if w.blockCommitHashListeners.Len() > 0 {
-		bytes, err := PackBlockCommitHashMessage(height, signedMsg)
+		bytes, err := PackBlockCommitHashMessage(height, pHeight, signedMsg, txID)
 		if err != nil {
 			return err
 		}
@@ -208,6 +208,9 @@ func (w *WebSocketServer) MessageCallback(vm VM) pubsub.Callback {
 				return
 			}
 			log.Debug("submitted tx", zap.Stringer("id", txID))
+		case BlockCommitHashMode:
+			w.blockCommitHashListeners.Add(c)
+			log.Debug("added block commit hash listener")
 		default:
 			log.Error("unexpected message type",
 				zap.Int("len", len(msgBytes)),

@@ -770,7 +770,6 @@ func (vm *VM) BuildBlockWithContext(ctx context.Context, blockContext *smblock.C
 
 	ctx, span := vm.tracer.Start(ctx, "VM.BuildBlockWithContext")
 	defer span.End()
-
 	return vm.buildBlock(ctx, blockContext)
 }
 

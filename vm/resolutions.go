@@ -206,10 +206,18 @@ func (vm *VM) processAcceptedBlock(b *chain.StatelessBlock) {
 		// verified before they are persisted.
 		vm.warpManager.GatherSignatures(context.TODO(), tx.ID(), result.WarpMessage.Bytes())
 	}
-
-	//@todo store vdrStateHash + BlockHash
-	if err := vm.StoreBlockCommitHash(b.Height(), b.StateRoot); err != nil {
-		vm.Fatal("unable to store block commit hash r", zap.Error(err))
+	// a few design decisions:
+	// if we use statelessblock.bctx.PchainHeight -> genesis block will produce an error, as it can not be attatched with the pchain block where subnet has 'actually started',
+	// so it is better to get P-Height when block is accepted by a validator, and storeBlockCommitHash.
+	// when validators are in sync, everyone will accept the block at the same time(~)
+	// even tho few validators may accept at another P-height due to network delay, if subnet validators did not change, this may not cause a problem.
+	// but if subnet validators change, then there will be split view for validators. so signature verification fails.
+	// then client requests to sign everyvalidator again for the freshSet of validators. //@todo
+	pHeight, _ := vm.snowCtx.ValidatorState.GetCurrentHeight(context.Background())
+	// _ = b.PHeight()
+	// Store vdrStateHash + BlockHash
+	if err := vm.StoreBlockCommitHash(b.Height(), pHeight, b.StateRoot); err != nil {
+		vm.Fatal("unable to store block commit hash", zap.Error(err))
 	}
 
 	// Update server
@@ -336,6 +344,10 @@ func (vm *VM) CurrentValidators(
 	ctx context.Context,
 ) (map[ids.NodeID]*validators.GetValidatorOutput, map[string]struct{}) {
 	return vm.proposerMonitor.Validators(ctx)
+}
+
+func (vm *VM) GetOrchestrator(ctx context.Context, blockHeight, pHeight uint64) ([]*ids.NodeID, error) {
+	return vm.proposerMonitor.GetOrchestrator(ctx, blockHeight, pHeight)
 }
 
 func (vm *VM) GatherSignatures(ctx context.Context, txID ids.ID, msg []byte) {

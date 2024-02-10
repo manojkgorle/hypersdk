@@ -284,12 +284,9 @@ func (b *StatelessBlock) initializeBuilt(
 	b.results = results
 	b.feeManager = feeManager
 	b.txsSet = set.NewSet[ids.ID](len(b.Txs))
-	for _, tx := range b.Txs {
-		b.txsSet.Add(tx.ID())
-		if tx.WarpMessage != nil {
-			b.containsWarp = true
-		}
-	}
+
+	b.containsWarp = true
+
 	return nil
 }
 
@@ -323,7 +320,7 @@ func (b *StatelessBlock) VerifyWithContext(ctx context.Context, bctx *block.Cont
 
 	// Persist the context in case we need it during Accept
 	b.bctx = bctx
-
+	b.vm.Logger().Info("verify with context")
 	// Proceed with normal verification
 	return b.verify(ctx, stateReady)
 }
@@ -1056,4 +1053,8 @@ func (sb *SyncableBlock) String() string {
 // Testing
 func (b *StatelessBlock) MarkUnprocessed() {
 	b.view = nil
+}
+
+func (b *StatelessBlock) PHeight() uint64 {
+	return b.bctx.PChainHeight
 }
