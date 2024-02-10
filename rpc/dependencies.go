@@ -36,4 +36,5 @@ type VM interface {
 	) (map[ids.NodeID]*validators.GetValidatorOutput, map[string]struct{})
 	GatherSignatures(context.Context, ids.ID, []byte)
 	GetVerifySignatures() bool
+	GetOrchestrator(ctx context.Context, blockHeight, pHeight uint64) ([]ids.NodeID, error)
 }

@@ -292,7 +292,7 @@ func PrefixBlockCommitHashKey(height uint64) []byte {
 
 func ToID(key []byte) ids.ID {
 	k := ids.ID{}
-	copy(k[:9], key[:])
+	copy(k[1:9], key[:])
 	return k
 }
 
@@ -413,8 +413,8 @@ func (vm *VM) innerStoreBlockCommitHash(height uint64, pBlkHeight uint64, stateR
 	}
 	blockCommitHashLRU.Put(string(k), signedMsg)
 
-	vm.webSocketServer.SendBlockCommitHash(signedMsg, height, pBlkHeight)          // transmit signature to listeners i.e. relayer
-	vm.warpManager.GatherSignatures(context.TODO(), keyPrefixed, unSigMsg.Bytes()) // transmit as a warp message
+	vm.webSocketServer.SendBlockCommitHash(signedMsg, height, pBlkHeight, keyPrefixed) // transmit signature to listeners i.e. relayer
+	vm.warpManager.GatherSignatures(context.TODO(), keyPrefixed, unSigMsg.Bytes())     // transmit as a warp message
 	vm.Logger().Info("stored block commit hash", zap.Uint64("block height", height))
 	return nil
 }

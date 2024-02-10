@@ -373,3 +373,14 @@ func (cli *JSONRPCClient) GatherWarpSignatureEVMInfo(
 
 	return unsignedMessage, signatureMap, canonicalValidators, weight, nil
 }
+
+func (cli *JSONRPCClient) GetOrchestrator(ctx context.Context) ([]ids.NodeID, error) {
+	resp := new(GetOrchestratorReply)
+	err := cli.requester.SendRequest(
+		ctx,
+		"getOrchestrator",
+		nil,
+		resp,
+	)
+	return resp.Orchestrators, err
+}

@@ -6,6 +6,7 @@ package vm
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"sync"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"go.uber.org/zap"
 )
 
@@ -227,25 +229,54 @@ func (w *WarpManager) AppRequest(
 		return nil
 	}
 	if sig == nil {
-		// Generate and save signature if it does not exist but is in state (may
-		// have been offline when message was accepted)
-		msg, err := w.vm.GetOutgoingWarpMessage(txID)
-		if msg == nil || err != nil {
-			w.vm.snowCtx.Log.Warn("could not get outgoing warp message", zap.Error(err))
-			return nil
-		}
-		rSig, err := w.vm.snowCtx.WarpSigner.Sign(msg)
-		if err != nil {
-			w.vm.snowCtx.Log.Warn("could not sign outgoing warp message", zap.Error(err))
-			return nil
-		}
-		if err := w.vm.StoreWarpSignature(txID, w.vm.snowCtx.PublicKey, rSig); err != nil {
-			w.vm.snowCtx.Log.Warn("could not store warp signature", zap.Error(err))
-			return nil
-		}
-		sig = &chain.WarpSignature{
-			PublicKey: w.vm.pkBytes,
-			Signature: rSig,
+		if txID[0] == 0x5 {
+			// get block state root from cache or disk & store block commit hash-> the initial check should not bother us.
+			height := binary.BigEndian.Uint64(txID[1:9])
+			k := PrefixBlockCommitHashKey(height)
+			keyPrefixed := ToID(k)
+			vm := w.vm
+			b, err := vm.GetProcessedBlockCommitHash(height)
+			if err != nil {
+				lh, _ := w.vm.GetLastAcceptedHeight()
+				w.vm.snowCtx.Log.Warn("not a valid height", zap.Error(err), zap.Uint64("height", height), zap.Uint64("last accepted height", lh))
+				return nil
+			}
+			unSigMsg, err := warp.ParseUnsignedMessage(b)
+			if err != nil {
+				w.vm.snowCtx.Log.Warn("unable to parse unsigned warp message", zap.Error(err))
+			}
+			signedMsg, err := vm.snowCtx.WarpSigner.Sign(unSigMsg)
+			if err != nil {
+				w.vm.snowCtx.Log.Warn("unable to sign block commit hash", zap.Error(err), zap.Uint64("height:", height))
+			}
+			if err := vm.StoreWarpSignature(keyPrefixed, vm.snowCtx.PublicKey, signedMsg); err != nil {
+				w.vm.snowCtx.Log.Warn("unable to store block commit hash", zap.Error(err), zap.Uint64("height:", height))
+			}
+			sig = &chain.WarpSignature{
+				PublicKey: w.vm.pkBytes,
+				Signature: signedMsg,
+			}
+		} else {
+			// Generate and save signature if it does not exist but is in state (may
+			// have been offline when message was accepted)
+			msg, err := w.vm.GetOutgoingWarpMessage(txID)
+			if msg == nil || err != nil {
+				w.vm.snowCtx.Log.Warn("could not get outgoing warp message", zap.Error(err))
+				return nil
+			}
+			rSig, err := w.vm.snowCtx.WarpSigner.Sign(msg)
+			if err != nil {
+				w.vm.snowCtx.Log.Warn("could not sign outgoing warp message", zap.Error(err))
+				return nil
+			}
+			if err := w.vm.StoreWarpSignature(txID, w.vm.snowCtx.PublicKey, rSig); err != nil {
+				w.vm.snowCtx.Log.Warn("could not store warp signature", zap.Error(err))
+				return nil
+			}
+			sig = &chain.WarpSignature{
+				PublicKey: w.vm.pkBytes,
+				Signature: rSig,
+			}
 		}
 	}
 

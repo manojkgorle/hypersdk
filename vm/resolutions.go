@@ -344,6 +344,10 @@ func (vm *VM) CurrentValidators(
 	return vm.proposerMonitor.Validators(ctx)
 }
 
+func (vm *VM) GetOrchestrator(ctx context.Context, blockHeight, pHeight uint64) ([]ids.NodeID, error) {
+	return vm.proposerMonitor.GetOrchestrator(ctx, blockHeight, pHeight)
+}
+
 func (vm *VM) GatherSignatures(ctx context.Context, txID ids.ID, msg []byte) {
 	vm.warpManager.GatherSignatures(ctx, txID, msg)
 }

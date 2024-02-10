@@ -139,3 +139,16 @@ func (p *ProposerMonitor) Validators(
 	}
 	return p.validators, p.validatorPublicKeys
 }
+
+func (p *ProposerMonitor) GetOrchestrator(
+	ctx context.Context,
+	blockHeight,
+	pChainHeight uint64,
+) ([]ids.NodeID, error) {
+
+	nodeID, err := p.proposer.Proposers(ctx, blockHeight, pChainHeight)
+	if err != nil {
+		return nil, err
+	}
+	return nodeID, nil
+}
