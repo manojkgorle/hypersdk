@@ -183,14 +183,14 @@ func (c *WebSocketClient) RegisterBlockCommitHash() error {
 	return c.mb.Send([]byte{BlockCommitHashMode})
 }
 
-func (c *WebSocketClient) ListenBlockCommitHash(ctx context.Context) (uint64, uint64, []byte, error) {
+func (c *WebSocketClient) ListenBlockCommitHash(ctx context.Context) (uint64, uint64, []byte, ids.ID, error) {
 	select {
 	case msg := <-c.pendingBlockCommitHash:
 		return UnPackBlockCommitHashMessage(msg)
 	case <-c.readStopped:
-		return 0, 0, nil, c.err
+		return 0, 0, nil, ids.Empty, c.err
 	case <-ctx.Done():
-		return 0, 0, nil, ctx.Err()
+		return 0, 0, nil, ids.Empty, ctx.Err()
 	}
 }
 
