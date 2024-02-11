@@ -206,7 +206,7 @@ type GetOrchestratorArgs struct {
 	BlockHeight  uint64 `json:"blockHeight"`
 }
 type GetOrchestratorReply struct {
-	Orchestrators []*ids.NodeID `json:"orchestrators"`
+	Orchestrators *[]ids.NodeID `json:"orchestrators"`
 }
 
 func (j *JSONRPCServer) GetOrchestrator(

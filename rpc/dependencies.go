@@ -36,5 +36,5 @@ type VM interface {
 	GatherSignatures(context.Context, ids.ID, []byte)
 	GetVerifyAuth() bool
 	GetBlockStateRootAtHeight(context.Context, uint64) (ids.ID, error)
-	GetOrchestrator(ctx context.Context, blockHeight, pHeight uint64) ([]*ids.NodeID, error)
+	GetOrchestrator(ctx context.Context, blockHeight, pHeight uint64) (*[]ids.NodeID, error)
 }

@@ -145,14 +145,18 @@ func (p *ProposerMonitor) GetOrchestrator(
 	ctx context.Context,
 	blockHeight,
 	pChainHeight uint64,
-) ([]*ids.NodeID, error) {
-	orchestrators := []*ids.NodeID{}
-	for i := uint64(0); i < orchestratorSize; i++ {
-		nodeID, err := p.proposer.ExpectedProposer(ctx, blockHeight, pChainHeight, i)
-		if err != nil {
-			return nil, err
-		}
-		orchestrators = append(orchestrators, &nodeID)
+) (*[]ids.NodeID, error) {
+	// orchestrators := []*ids.NodeID{}
+	// for i := uint64(0); i < orchestratorSize; i++ {
+	// 	nodeID, err := p.proposer.ExpectedProposer(ctx, blockHeight, pChainHeight, i)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	orchestrators = append(orchestrators, &nodeID)
+	// }
+	nodeID, err := p.proposer.Proposers(ctx, blockHeight, pChainHeight, 1)
+	if err != nil {
+		return nil, err
 	}
-	return orchestrators, nil
+	return &nodeID, nil
 }

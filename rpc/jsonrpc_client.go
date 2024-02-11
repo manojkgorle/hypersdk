@@ -345,12 +345,12 @@ func (cli *JSONRPCClient) GenerateAggregateWarpSignature(
 	return message, weight, signatureWeight, nil
 }
 
-func (cli *JSONRPCClient) GetOrchestrator(ctx context.Context) ([]*ids.NodeID, error) {
+func (cli *JSONRPCClient) GetOrchestrator(ctx context.Context, pBlockHeight, blockHeight uint64) (*[]ids.NodeID, error) {
 	resp := new(GetOrchestratorReply)
 	err := cli.requester.SendRequest(
 		ctx,
 		"getOrchestrator",
-		nil,
+		&GetOrchestratorArgs{PBlockHeight: pBlockHeight, BlockHeight: blockHeight},
 		resp,
 	)
 	return resp.Orchestrators, err

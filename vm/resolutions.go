@@ -346,7 +346,7 @@ func (vm *VM) CurrentValidators(
 	return vm.proposerMonitor.Validators(ctx)
 }
 
-func (vm *VM) GetOrchestrator(ctx context.Context, blockHeight, pHeight uint64) ([]*ids.NodeID, error) {
+func (vm *VM) GetOrchestrator(ctx context.Context, blockHeight, pHeight uint64) (*[]ids.NodeID, error) {
 	return vm.proposerMonitor.GetOrchestrator(ctx, blockHeight, pHeight)
 }
 
