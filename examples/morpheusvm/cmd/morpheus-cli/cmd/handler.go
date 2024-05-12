@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -19,6 +20,8 @@ import (
 	"github.com/ava-labs/hypersdk/pubsub"
 	"github.com/ava-labs/hypersdk/rpc"
 	"github.com/ava-labs/hypersdk/utils"
+	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend/groth16"
 )
 
 var _ cli.Controller = (*Controller)(nil)
@@ -75,6 +78,69 @@ func (h *Handler) DefaultActor() (
 	return chainID, &cli.PrivateKey{
 			Address: addr,
 			Bytes:   priv,
+		}, factory, jcli,
+		brpc.NewJSONRPCClient(
+			uris[0],
+			networkID,
+			chainID,
+		), ws, nil
+}
+
+func (h *Handler) SnackActor() (
+	ids.ID, *cli.PrivateKey, chain.AuthFactory,
+	*rpc.JSONRPCClient, *brpc.JSONRPCClient, *rpc.WebSocketClient, error,
+) {
+	pKeyBytes, err := h.h.GetDefault(snacksPK)
+	if err != nil {
+		return ids.Empty, nil, nil, nil, nil, nil, err
+	}
+	pKey := groth16.NewProvingKey(ecc.BN254)
+	_, err = pKey.ReadFrom(bytes.NewBuffer(pKeyBytes))
+	if err != nil {
+		return ids.Empty, nil, nil, nil, nil, nil, err
+	}
+
+	vKeyBytes, err := h.h.GetDefault(snacksVK)
+	if err != nil {
+		return ids.Empty, nil, nil, nil, nil, nil, err
+	}
+	vKey := groth16.NewVerifyingKey(ecc.BN254)
+	_, err = vKey.ReadFrom(bytes.NewBuffer(vKeyBytes))
+	if err != nil {
+		return ids.Empty, nil, nil, nil, nil, nil, err
+	}
+
+	csBytes, err := h.h.GetDefault(snacksCS)
+	if err != nil {
+		return ids.Empty, nil, nil, nil, nil, nil, err
+	}
+	cs := groth16.NewCS(ecc.BN254)
+	_, err = cs.ReadFrom(bytes.NewBuffer(csBytes))
+	if err != nil {
+		return ids.Empty, nil, nil, nil, nil, nil, err
+	}
+
+	factory := auth.NewSNACSFactory(pKey, vKey, cs)
+
+	chainID, uris, err := h.h.GetDefaultChain(true)
+	if err != nil {
+		return ids.Empty, nil, nil, nil, nil, nil, err
+	}
+	jcli := rpc.NewJSONRPCClient(uris[0])
+	networkID, _, _, err := jcli.Network(context.TODO())
+	if err != nil {
+		return ids.Empty, nil, nil, nil, nil, nil, err
+	}
+	ws, err := rpc.NewWebSocketClient(uris[0], rpc.DefaultHandshakeTimeout, pubsub.MaxPendingMessages, pubsub.MaxReadMessageSize)
+	if err != nil {
+		return ids.Empty, nil, nil, nil, nil, nil, err
+	}
+	snacs := auth.SNACS{
+		VKey: factory.VKey,
+	}
+	// For [defaultActor], we always send requests to the first returned URI.
+	return chainID, &cli.PrivateKey{
+			Address: snacs.Actor(),
 		}, factory, jcli,
 		brpc.NewJSONRPCClient(
 			uris[0],

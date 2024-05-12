@@ -9,6 +9,7 @@ require (
 	github.com/btcsuite/btcd/btcutil v1.1.3
 	github.com/bytecodealliance/wasmtime-go/v14 v14.0.0
 	github.com/cockroachdb/pebble v0.0.0-20230224221607-fccb83b60d5c
+	github.com/consensys/gnark-crypto v0.12.2-0.20240215234832-d72fcb379d3e
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.5.0
@@ -35,6 +36,21 @@ require (
 )
 
 require (
+	github.com/bits-and-blooms/bitset v1.8.0 // indirect
+	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/consensys/bavard v0.1.13 // indirect
+	github.com/fxamacker/cbor/v2 v2.5.0 // indirect
+	github.com/ingonyama-zk/icicle v0.0.0-20230928131117-97f0079e5c71 // indirect
+	github.com/ingonyama-zk/iciclegnark v0.1.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mmcloughlin/addchain v0.4.0 // indirect
+	github.com/rs/zerolog v1.30.0 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
+	rsc.io/tmplfunc v0.0.3 // indirect
+)
+
+require (
 	filippo.io/edwards25519 v1.0.0 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -44,6 +60,7 @@ require (
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.3 // indirect
+	github.com/consensys/gnark v0.10.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/getsentry/sentry-go v0.18.0 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
@@ -52,7 +69,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/btree v1.1.2 // indirect
-	github.com/google/pprof v0.0.0-20230406165453-00490a63f317 // indirect
+	github.com/google/pprof v0.0.0-20230817174616-7a8ec2ada47b // indirect
 	github.com/google/renameio/v2 v2.0.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.2 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
@@ -67,7 +84,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
-	github.com/rogpeppe/go-internal v1.10.0 // indirect
+	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/supranational/blst v0.3.11 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.2 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.11.2 // indirect

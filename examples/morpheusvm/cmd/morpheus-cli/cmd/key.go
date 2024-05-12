@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/ava-labs/hypersdk/crypto/bls"
 	"github.com/ava-labs/hypersdk/crypto/ed25519"
 	"github.com/ava-labs/hypersdk/crypto/secp256r1"
+	"github.com/ava-labs/hypersdk/crypto/snacs"
 	"github.com/ava-labs/hypersdk/examples/morpheusvm/auth"
 	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
 	brpc "github.com/ava-labs/hypersdk/examples/morpheusvm/rpc"
@@ -24,11 +26,18 @@ const (
 	ed25519Key   = "ed25519"
 	secp256r1Key = "secp256r1"
 	blsKey       = "bls"
+	snacsKey     = "snacs"
+)
+
+const (
+	snacksPK = "snacs-pk"
+	snacksVK = "snacs-vk"
+	snacksCS = "snacs-cs"
 )
 
 func checkKeyType(k string) error {
 	switch k {
-	case ed25519Key, secp256r1Key, blsKey:
+	case ed25519Key, secp256r1Key, blsKey, snacsKey:
 		return nil
 	default:
 		return fmt.Errorf("%w: %s", ErrInvalidKeyType, k)
@@ -43,6 +52,8 @@ func getKeyType(addr codec.Address) (string, error) {
 		return secp256r1Key, nil
 	case consts.BLSID:
 		return blsKey, nil
+	case consts.SNACSID:
+		return snacsKey, nil
 	default:
 		return "", ErrInvalidKeyType
 	}
@@ -152,6 +163,47 @@ var genKeyCmd = &cobra.Command{
 		utils.Outf(
 			"{{green}}created address:{{/}} %s",
 			codec.MustAddressBech32(consts.HRP, priv.Address),
+		)
+		return nil
+	},
+}
+
+var genSnacsKeyCmd = &cobra.Command{
+	Use: "generate-snacs",
+	RunE: func(_ *cobra.Command, _ []string) error {
+		factory, err := auth.SetUpSNACSFactory()
+		if err != nil {
+			return err
+		}
+		var pkeyBytes bytes.Buffer
+		_, err = factory.PKey.WriteRawTo(&pkeyBytes)
+		if err != nil {
+			return err
+		}
+		if err := handler.h.StoreDefault(snacksPK, pkeyBytes.Bytes()); err != nil {
+			return err
+		}
+		vkeyBytes, err := snacs.VKeyToBytes(factory.VKey)
+		if err != nil {
+			return err
+		}
+		if err := handler.h.StoreDefault(snacksVK, vkeyBytes); err != nil {
+			return err
+		}
+		var csBytes bytes.Buffer
+		_, err = factory.CS.WriteTo(&csBytes)
+		if err != nil {
+			return err
+		}
+		if err := handler.h.StoreDefault(snacksCS, csBytes.Bytes()); err != nil {
+			return err
+		}
+		snacs := auth.SNACS{
+			VKey: factory.VKey,
+		}
+		utils.Outf(
+			"{{green}}created address:{{/}} %s\n",
+			codec.MustAddressBech32(consts.HRP, snacs.Actor()),
 		)
 		return nil
 	},

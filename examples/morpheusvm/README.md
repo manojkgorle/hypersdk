@@ -12,22 +12,90 @@
 </p>
 
 ---
+## What are SNARK Accounts Aka SNACS?
+For background on SNARK Accounts, read discussion on [celestia forum](https://forum.celestia.org/t/celestia-snark-accounts-design-spec/1639).
 
-_[Who is Morpheus ("The Matrix")?](https://www.youtube.com/watch?v=zE7PKRjrid4)_
+Every snark proof generation requires a setup, where proving key, verfying key are generated. In anology to key based signature schemes, private key is anologous to proving key and public key is anologus to verifying key.
+## How does this work?
 
-The [`morpheusvm`](./examples/morpheusvm) provides the first glimpse into the world of the `hypersdk`.
-After learning how to implement native token transfers in a `hypervm` (one of the simplest Custom VMs
-you could make), you will have the choice to go deeper (red pill) or to turn back to the VMs that you
-already know (blue pill).
+A new auth type called SNACS is added. Users use this auth type to sign and verify their transactions.
 
-When you are ready to build your own `hypervm`, we recommend using the `morpheusvm` as a template!
+```go
+type SNACS struct {
+	VKey       groth16.VerifyingKey `json:"vkey,omitempty"`
+	Proof      groth16.Proof        `json:"proof"`
+	PubWitness witness.Witness      `json:"pub_witness"`
+	addr       codec.Address
+}
+```
 
-## Status
-`morpheusvm` is considered **ALPHA** software and is not safe to use in
-production. The framework is under active development and may change
-significantly over the coming months as its modules are optimized and
-audited.
+The below constraint system is defined in the SNACKS module. The cirucit checks if the `mimic hash of PreImage` equals `Hash` 
 
+```go
+type Circuit struct {
+	PreImage frontend.Variable
+	Hash     frontend.Variable `gnark:",public"`
+}
+
+func (circuit *Circuit) Define(api frontend.API) error {
+	mimc, _ := mimc.NewMiMC(api)
+	mimc.Write(circuit.PreImage)
+	api.AssertIsEqual(circuit.Hash, mimc.Sum())
+	return nil
+}
+```
+
+While Sign() is called on a transaction, `sha224(msg)` is mimic hashed. where `msg` is the `tx.Digest()` sent while signing. We are using BN254 curve, so all our field elements should be less than 254 bits. As `msg` may be larger than 254 bits, we sha224 hash `msg`.
+
+```go
+func (s *SNACSFactory) Sign(msg []byte) (chain.Auth, error) {
+	msgHash := sha256.Sum224(msg)
+	hash := MimcHash(msgHash[:])
+	assignment := &Circuit{
+		PreImage: frontend.Variable(msgHash[:]),
+		Hash:     frontend.Variable(hash),
+	}
+
+	witness, err := frontend.NewWitness(assignment, ecc.BN254.ScalarField())
+	if err != nil {
+		return nil, fmt.Errorf("error creating new witness: %s", err)
+	}
+
+	proof, err := groth16.Prove(s.CS, s.PKey, witness)
+	if err != nil {
+		return nil, fmt.Errorf("error generating proof: %s", err)
+	}
+
+	pubWit, err := witness.Public()
+	if err != nil {
+		return nil, fmt.Errorf("error generating public witness: %s", err)
+	}
+	return &SNACS{Proof: proof, VKey: s.VKey, PubWitness: pubWit}, nil
+}
+```
+
+The Verify() function defines wheather the verifiction process stays independent of circuit, but holds the security gaurantee. i.e the proof is somehow related to the msg. Our implementation of Verify function is circuit specific, but can simply be made independent of circuit.
+
+```go
+func (s *SNACS) Verify(_ context.Context, msg []byte) error {
+	msgHash := sha256.Sum224(msg)
+	hash := MimcHash(msgHash[:])
+	assignement := &Circuit{
+		PreImage: frontend.Variable(msgHash[:]), // preImage can be anything, as PreImage is not public input. But filling the field is necessary for the witness to be created
+		Hash:     frontend.Variable(hash),
+	}
+	witness, err := frontend.NewWitness(assignement, ecc.BN254.ScalarField())
+	if err != nil {
+		return err
+	}
+	pubWit, err := witness.Public()
+	if err != nil {
+		return err
+	}
+	return groth16.Verify(s.Proof, s.VKey, pubWit)
+}
+
+```
 ## Demo
 ### Launch Subnet
 The first step to running this demo is to launch your own `morpheusvm` Subnet. You
@@ -92,59 +160,21 @@ _`./build/morpheus-cli chain import-anr` connects to the Avalanche Network Runne
 the background and pulls the URIs of all nodes tracking each chain you
 created._
 
+### Setup SNAC factory:
+for using SNAC account, we need factory to be initalisedl, factory contains proving key, verifying key, constraint system.
 
-### Check Balance
-To confirm you've done everything correctly up to this point, run the
-following command to get the current balance of the key you added:
-```bash
-./build/morpheus-cli key balance
-```
-
-If successful, the balance response should look like this:
-```
-database: .morpheus-cli
-address:morpheus1qrzvk4zlwj9zsacqgtufx7zvapd3quufqpxk5rsdd4633m4wz2fdjk97rwu
-chainID: 2mQy8Q9Af9dtZvVM8pKsh2rB3cT3QNLjghpet5Mm5db4N7Hwgk
-uri: http://127.0.0.1:45778/ext/bc/2mQy8Q9Af9dtZvVM8pKsh2rB3cT3QNLjghpet5Mm5db4N7Hwgk
-balance: 1000.000000000 RED
+```shell
+  ./build/morpheus-cli key generate-snacs
 ```
 
-### Generate Another Address
-Now that we have a balance to send, we need to generate another address to send to. Because
-we use bech32 addresses, we can't just put a random string of characters as the recipient
-(won't pass checksum test that protects users from sending to off-by-one addresses).
-```bash
-./build/morpheus-cli key generate secp256r1
-```
+copy address.
 
-If successful, the `morpheus-cli` will emit the new address:
-```
-database: .morpheus-cli
-created address: morpheus1q8rc050907hx39vfejpawjydmwe6uujw0njx9s6skzdpp3cm2he5s036p07
-```
-
-By default, the `morpheus-cli` sets newly generated addresses to be the default. We run
-the following command to set it back to `demo.pk`:
-```bash
-./build/morpheus-cli key set
-```
-
-You should see something like this:
-```
-database: .morpheus-cli
-chainID: 2mQy8Q9Af9dtZvVM8pKsh2rB3cT3QNLjghpet5Mm5db4N7Hwgk
-stored keys: 2
-0) address (ed25519): morpheus1qrzvk4zlwj9zsacqgtufx7zvapd3quufqpxk5rsdd4633m4wz2fdjk97rwu balance: 10000000000.000000000 RED
-1) address (secp256r1): morpheus1q8rc050907hx39vfejpawjydmwe6uujw0njx9s6skzdpp3cm2he5s036p07 balance: 0.000000000 RED
-set default key: 0
-```
-
-### Send Tokens
+### Send Tokens to SNAC account
 Lastly, we trigger the transfer:
 ```bash
 ./build/morpheus-cli action transfer
 ```
-
+Send funds to the Snac Account Address copied.
 The `morpheus-cli` will emit the following logs when the transfer is successful:
 ```
 database: .morpheus-cli
@@ -155,6 +185,12 @@ recipient: morpheus1q8rc050907hx39vfejpawjydmwe6uujw0njx9s6skzdpp3cm2he5s036p07
 ✔ amount: 10
 continue (y/n): y
 ✅ txID: sceRdaoqu2AAyLdHCdQkENZaXngGjRoc8nFdGyG8D9pCbTjbk
+```
+### Make transactions from SNAC account:
+transfer funds to morpheus1qqds2l0ryq5hc2ddps04384zz6rfeuvn3kyvn77hp4n5sv3ahuh6wgkt57y, using snac account
+
+```shell
+  ./build/morpheus-cli action transfer-snac
 ```
 
 ### Bonus: Watch Activity in Real-Time

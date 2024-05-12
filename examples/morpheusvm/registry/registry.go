@@ -27,6 +27,7 @@ func init() {
 		consts.AuthRegistry.Register((&auth.ED25519{}).GetTypeID(), auth.UnmarshalED25519, false),
 		consts.AuthRegistry.Register((&auth.SECP256R1{}).GetTypeID(), auth.UnmarshalSECP256R1, false),
 		consts.AuthRegistry.Register((&auth.BLS{}).GetTypeID(), auth.UnmarshalBLS, false),
+		consts.AuthRegistry.Register((&auth.SNACS{}).GetTypeID(), auth.UnmarshalSNACS, false),
 	)
 	if errs.Errored() {
 		panic(errs.Err)

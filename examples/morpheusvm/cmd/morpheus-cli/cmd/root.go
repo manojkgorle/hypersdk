@@ -123,6 +123,7 @@ func init() {
 		importKeyCmd,
 		setKeyCmd,
 		balanceKeyCmd,
+		genSnacsKeyCmd,
 	)
 
 	// chain
@@ -144,6 +145,7 @@ func init() {
 	// actions
 	actionCmd.AddCommand(
 		transferCmd,
+		transferSnacsCmd,
 	)
 
 	// spam

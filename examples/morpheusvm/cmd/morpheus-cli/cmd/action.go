@@ -59,3 +59,45 @@ var transferCmd = &cobra.Command{
 		return err
 	},
 }
+
+var transferSnacsCmd = &cobra.Command{
+	Use: "transfer-snacs",
+	RunE: func(*cobra.Command, []string) error {
+		ctx := context.Background()
+		_, priv, factory, cli, bcli, ws, err := handler.SnackActor()
+		if err != nil {
+			return err
+		}
+
+		// Get balance info
+		balance, err := handler.GetBalance(ctx, bcli, priv.Address)
+		if balance == 0 || err != nil {
+			return err
+		}
+
+		// Select recipient
+		recipient, err := handler.Root().PromptAddress("recipient")
+		if err != nil {
+			return err
+		}
+
+		// Select amount
+		amount, err := handler.Root().PromptAmount("amount", consts.Decimals, balance, nil)
+		if err != nil {
+			return err
+		}
+
+		// Confirm action
+		cont, err := handler.Root().PromptContinue()
+		if !cont || err != nil {
+			return err
+		}
+
+		// Generate transaction
+		_, _, err = sendAndWait(ctx, &actions.Transfer{
+			To:    recipient,
+			Value: amount,
+		}, cli, bcli, ws, factory, true)
+		return err
+	},
+}
