@@ -26,8 +26,7 @@ const (
 type SNACS struct {
 	VKey  groth16.VerifyingKey `json:"vkey,omitempty"`
 	Proof groth16.Proof        `json:"proof"`
-	// PubWitness witness.Witness      `json:"pub_witness"`
-	addr codec.Address
+	addr  codec.Address
 }
 
 func (s *SNACS) address() codec.Address {

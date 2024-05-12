@@ -24,10 +24,9 @@ A new auth type called SNACS is added. Users use this auth type to sign and veri
 
 ```go
 type SNACS struct {
-	VKey       groth16.VerifyingKey `json:"vkey,omitempty"`
-	Proof      groth16.Proof        `json:"proof"`
-	PubWitness witness.Witness      `json:"pub_witness"`
-	addr       codec.Address
+	VKey  groth16.VerifyingKey `json:"vkey,omitempty"`
+	Proof groth16.Proof        `json:"proof"`
+	addr  codec.Address
 }
 ```
 
@@ -68,15 +67,11 @@ func (s *SNACSFactory) Sign(msg []byte) (chain.Auth, error) {
 		return nil, fmt.Errorf("error generating proof: %s", err)
 	}
 
-	pubWit, err := witness.Public()
-	if err != nil {
-		return nil, fmt.Errorf("error generating public witness: %s", err)
-	}
-	return &SNACS{Proof: proof, VKey: s.VKey, PubWitness: pubWit}, nil
+	return &SNACS{Proof: proof, VKey: s.VKey}, nil
 }
 ```
 
-The Verify() function defines wheather the verifiction process stays independent of circuit, but holds the security gaurantee. i.e the proof is somehow related to the msg. Our implementation of Verify function is circuit specific, but can simply be made independent of circuit.
+The Verify() function logic defines if the verifiction process stays independent of circuit, but holds the security gaurantee. i.e the proof is somehow related to the msg. Our implementation of Verify function is circuit specific, but can simply be made independent of circuit if we donot want to have pubWit derived from msg.
 
 ```go
 func (s *SNACS) Verify(_ context.Context, msg []byte) error {
@@ -96,7 +91,6 @@ func (s *SNACS) Verify(_ context.Context, msg []byte) error {
 	}
 	return groth16.Verify(s.Proof, s.VKey, pubWit)
 }
-
 ```
 ## Demo
 ### Launch Subnet
