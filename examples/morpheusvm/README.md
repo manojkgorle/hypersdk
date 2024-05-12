@@ -16,6 +16,8 @@
 For background on SNARK Accounts, read discussion on [celestia forum](https://forum.celestia.org/t/celestia-snark-accounts-design-spec/1639).
 
 Every snark proof generation requires a setup, where proving key, verfying key are generated. In anology to key based signature schemes, private key is anologous to proving key and public key is anologus to verifying key.
+
+Address is derived from verifying key.
 ## How does this work?
 
 A new auth type called SNACS is added. Users use this auth type to sign and verify their transactions.

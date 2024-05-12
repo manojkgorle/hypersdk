@@ -13,7 +13,6 @@ import (
 	"github.com/ava-labs/hypersdk/utils"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
-	"github.com/consensys/gnark/backend/witness"
 	"github.com/consensys/gnark/constraint"
 	"github.com/consensys/gnark/frontend"
 )
@@ -25,10 +24,10 @@ const (
 )
 
 type SNACS struct {
-	VKey       groth16.VerifyingKey `json:"vkey,omitempty"`
-	Proof      groth16.Proof        `json:"proof"`
-	PubWitness witness.Witness      `json:"pub_witness"`
-	addr       codec.Address
+	VKey  groth16.VerifyingKey `json:"vkey,omitempty"`
+	Proof groth16.Proof        `json:"proof"`
+	// PubWitness witness.Witness      `json:"pub_witness"`
+	addr codec.Address
 }
 
 func (s *SNACS) address() codec.Address {
@@ -79,17 +78,17 @@ func (s *SNACS) Sponsor() codec.Address {
 func (s *SNACS) Size() int {
 	vKeyBytes, _ := snacs.VKeyToBytes(s.VKey)
 	proofBytes, _ := snacs.ProofToBytes(s.Proof)
-	pubWitBytes, _ := snacs.PubWitToBytes(s.PubWitness)
-	return len(vKeyBytes) + len(proofBytes) + len(pubWitBytes)
+
+	return len(vKeyBytes) + len(proofBytes)
 }
 
 func (s *SNACS) Marshal(p *codec.Packer) {
 	vKeyBytes, _ := snacs.VKeyToBytes(s.VKey)
 	proofBytes, _ := snacs.ProofToBytes(s.Proof)
-	pubWitBytes, _ := snacs.PubWitToBytes(s.PubWitness)
+
 	p.PackBytes(vKeyBytes)
 	p.PackBytes(proofBytes)
-	p.PackBytes(pubWitBytes)
+
 }
 
 func UnmarshalSNACS(p *codec.Packer) (chain.Auth, error) {
@@ -104,12 +103,6 @@ func UnmarshalSNACS(p *codec.Packer) (chain.Auth, error) {
 	var proofBytes []byte
 	p.UnpackBytes(-1, true, &proofBytes)
 	s.Proof, err = snacs.ProofFromBytes(proofBytes)
-	if err != nil {
-		return nil, err
-	}
-	var pubWitBytes []byte
-	p.UnpackBytes(-1, true, &pubWitBytes)
-	s.PubWitness, err = snacs.PubWitFromBytes(pubWitBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -154,12 +147,7 @@ func (s *SNACSFactory) Sign(msg []byte) (chain.Auth, error) {
 		return nil, fmt.Errorf("error generating proof: %s", err)
 	}
 
-	pubWit, err := witness.Public()
-	if err != nil {
-		return nil, fmt.Errorf("error generating public witness: %s", err)
-	}
-	pubWit.MarshalBinary()
-	return &SNACS{Proof: proof, VKey: s.VKey, PubWitness: pubWit}, nil
+	return &SNACS{Proof: proof, VKey: s.VKey}, nil
 }
 
 func (s *SNACSFactory) MaxUnits() (uint64, uint64) {
