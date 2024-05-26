@@ -277,6 +277,6 @@ func lookupKeyBalance(addr codec.Address, uri string, networkID uint32, chainID 
 var balanceKeyCmd = &cobra.Command{
 	Use: "balance",
 	RunE: func(*cobra.Command, []string) error {
-		return handler.Root().Balance(checkAllChains, false, lookupKeyBalance)
+		return handler.Root().Balance(checkAllChains, true, lookupKeyBalance)
 	},
 }

@@ -4,12 +4,6 @@
 <p align="center">
   The Choice is Yours
 </p>
-<p align="center">
-  <a href="https://github.com/ava-labs/hypersdk/actions/workflows/morpheusvm-static-analysis.yml"><img src="https://github.com/ava-labs/hypersdk/actions/workflows/morpheusvm-static-analysis.yml/badge.svg" /></a>
-  <a href="https://github.com/ava-labs/hypersdk/actions/workflows/morpheusvm-unit-tests.yml"><img src="https://github.com/ava-labs/hypersdk/actions/workflows/morpheusvm-unit-tests.yml/badge.svg" /></a>
-  <a href="https://github.com/ava-labs/hypersdk/actions/workflows/morpheusvm-sync-tests.yml"><img src="https://github.com/ava-labs/hypersdk/actions/workflows/morpheusvm-sync-tests.yml/badge.svg" /></a>
-  <a href="https://github.com/ava-labs/hypersdk/actions/workflows/morpheusvm-load-tests.yml"><img src="https://github.com/ava-labs/hypersdk/actions/workflows/morpheusvm-load-tests.yml/badge.svg" /></a>
-</p>
 
 ---
 ## What are SNARK Accounts Aka SNACS?
@@ -30,7 +24,7 @@ type SNACS struct {
 }
 ```
 
-The below constraint system is defined in the SNACKS module. The cirucit checks if the `mimic hash of PreImage` equals `Hash` 
+The below circuit is defined in the SNACKS module. The cirucit checks if the `mimic hash of PreImage` equals `Hash` 
 
 ```go
 type Circuit struct {
@@ -46,7 +40,7 @@ func (circuit *Circuit) Define(api frontend.API) error {
 }
 ```
 
-While Sign() is called on a transaction, `sha224(msg)` is mimic hashed. where `msg` is the `tx.Digest()` sent while signing. We are using BN254 curve, so all our field elements should be less than 254 bits. As `msg` may be larger than 254 bits, we sha224 hash `msg`.
+While signing a transaction, the sha224 hash of the `msg` is mimic hashed. `msg` is the transaction digest (obtained with `tx.Digest()`) sent while signing. As this auth module uses the BN254 curve for proof generation, `msg` should be its field element, but `msg` may be larger than 254 bits, so to keep it under 254 bits, we sha224 hash msg.
 
 ```go
 func (s *SNACSFactory) Sign(msg []byte) (chain.Auth, error) {
@@ -71,7 +65,7 @@ func (s *SNACSFactory) Sign(msg []byte) (chain.Auth, error) {
 }
 ```
 
-The Verify() function logic defines if the verifiction process stays independent of circuit, but holds the security gaurantee. i.e the proof is somehow related to the msg. Our implementation of Verify function is circuit specific, but can simply be made independent of circuit if we donot want to have pubWit derived from msg.
+The Verification function logic defines the circuit-dependent or circuit-specific verification but holds the security guarantee. i.e the proof is somehow related to the msg. Our implementation of the verification function is circuit-specific, but this can be made circuit-independent if we avoid deriving public witness from `msg`(this is an extra check to verify if the proof corresponds to the public witness derived from the `msg`).
 
 ```go
 func (s *SNACS) Verify(_ context.Context, msg []byte) error {
@@ -163,14 +157,14 @@ for using SNAC account, we need factory to be initalisedl, factory contains prov
   ./build/morpheus-cli key generate-snacs
 ```
 
-copy address.
+_this is the snark account address, copy the address for further usage._
 
 ### Send Tokens to SNAC account
 Lastly, we trigger the transfer:
 ```bash
 ./build/morpheus-cli action transfer
 ```
-Send funds to the Snac Account Address copied.
+Send funds to the Snac Address copied.
 The `morpheus-cli` will emit the following logs when the transfer is successful:
 ```
 database: .morpheus-cli
@@ -189,6 +183,10 @@ transfer funds to morpheus1qqds2l0ryq5hc2ddps04384zz6rfeuvn3kyvn77hp4n5sv3ahuh6w
   ./build/morpheus-cli action transfer-snac
 ```
 
+### View Balance:
+```shell
+  ./build/morpheus-cli key balance
+```
 ### Bonus: Watch Activity in Real-Time
 To provide a better sense of what is actually happening on-chain, the
 `morpheus-cli` comes bundled with a simple explorer that logs all blocks/txs that
