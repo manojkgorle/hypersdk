@@ -10,9 +10,9 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/chain"
 
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
+	trpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/rpc"
 )
 
 var chainCmd = &cobra.Command{

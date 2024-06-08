@@ -11,8 +11,8 @@ import (
 	"github.com/ava-labs/avalanchego/utils/profiler"
 	"github.com/ava-labs/avalanchego/utils/units"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/trace"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/trace"
 )
 
 type Config struct{}
@@ -40,6 +40,7 @@ func (c *Config) GetAcceptedBlockWindowCache() int { return 128 }    // 256MB at
 func (c *Config) GetAcceptedBlockWindow() int      { return 50_000 } // ~3.5hr with 250ms block time (100GB at 2MB)
 func (c *Config) GetStateSyncMinBlocks() uint64    { return 768 }    // set to max int for archive nodes to ensure no skips
 func (c *Config) GetAcceptorSize() int             { return 64 }
+func (c *Config) GetStoreBlockResultsOnDisk() bool { return true }
 
 func (c *Config) GetContinuousProfilerConfig() *profiler.Config {
 	return &profiler.Config{Enabled: false}
@@ -49,3 +50,5 @@ func (c *Config) GetTargetBuildDuration() time.Duration  { return 100 * time.Mil
 func (c *Config) GetProcessingBuildSkip() int            { return 16 }
 func (c *Config) GetTargetGossipDuration() time.Duration { return 20 * time.Millisecond }
 func (c *Config) GetBlockCompactionFrequency() int       { return 32 } // 64 MB of deletion if 2 MB blocks
+func (c *Config) GetETHL1RPC() string                    { return "http://localhost:8545" }
+func (c *Config) GetETHL1WS() string                     { return "ws://localhost:8546" }

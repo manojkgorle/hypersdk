@@ -5,17 +5,18 @@ package rpc
 
 import (
 	"context"
+	"encoding/binary"
 	"sync"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/emap"
-	"github.com/ava-labs/hypersdk/pubsub"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/emap"
+	"github.com/AnomalyFi/hypersdk/pubsub"
 )
 
 type WebSocketServer struct {
@@ -155,6 +156,49 @@ func (w *WebSocketServer) MessageCallback(vm VM) pubsub.Callback {
 		case BlockMode:
 			w.blockListeners.Add(c)
 			log.Debug("added block listener")
+			if len(msgBytes) > 1 {
+				currentBlockHeight := vm.LastAcceptedBlock().Height()
+				blockNumber := binary.BigEndian.Uint64(msgBytes[1:])
+				if currentBlockHeight <= blockNumber {
+					w.logger.Error("Invalid block height", zap.Uint64("current block height", currentBlockHeight), zap.Uint64("given block height", blockNumber))
+					return
+				}
+				has, err := vm.HasDiskBlock(blockNumber)
+				if err != nil || !has {
+					w.logger.Error("Could not find block on disk", zap.Uint64("height", blockNumber))
+					return
+				} else {
+					for i := blockNumber; i <= currentBlockHeight; i++ {
+						blk, err := vm.GetDiskBlock(i)
+						if err != nil {
+							w.logger.Error("Couldnot find block on disk", zap.Uint64("height", i))
+							return
+						}
+						blkResults, err := vm.GetDiskBlockResults(ctx, i)
+						if err != nil {
+							w.logger.Error("Couldnot find block results on disk", zap.Uint64("height", i))
+							return
+						}
+						feeBytes, err := vm.GetDiskFeeManager(ctx, i)
+						if err != nil {
+							w.logger.Error("Something went wrong, couldnot find block results on disk")
+							w.logger.Error("Couldnot get feeBytes on disk", zap.Uint64("height", i))
+							return
+						}
+						bytes, err := PackBlockMessageForBackwardStream(blk, blkResults, feeBytes)
+						if err != nil {
+							return
+						}
+						if !c.Send(append([]byte{BlockMode}, bytes...)) {
+							w.logger.Error("dropping message to subscribed connection due to too many pending messages")
+						}
+						// if i == currentBlockHeight-1 { // ensure to stream all blocks
+						// 	currentBlockHeight = vm.LastAcceptedBlock().Height()
+						// }
+					}
+				}
+
+			}
 		case TxMode:
 			msgBytes = msgBytes[1:]
 			// Unmarshal TX

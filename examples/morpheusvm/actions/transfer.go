@@ -8,13 +8,11 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/storage"
-	"github.com/ava-labs/hypersdk/state"
-
-	mconsts "github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/storage"
+	"github.com/AnomalyFi/hypersdk/state"
 )
 
 var _ chain.Action = (*Transfer)(nil)
@@ -28,7 +26,7 @@ type Transfer struct {
 }
 
 func (*Transfer) GetTypeID() uint8 {
-	return mconsts.TransferID
+	return transferID
 }
 
 func (t *Transfer) StateKeys(actor codec.Address, _ ids.ID) state.Keys {
@@ -88,4 +86,9 @@ func UnmarshalTransfer(p *codec.Packer) (chain.Action, error) {
 func (*Transfer) ValidRange(chain.Rules) (int64, int64) {
 	// Returning -1, -1 means that the action is always valid.
 	return -1, -1
+}
+
+func (*Transfer) NMTNamespace() []byte {
+	// byte array with 8 zeros
+	return DefaultNMTNamespace
 }

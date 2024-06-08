@@ -16,8 +16,8 @@ import (
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/consts"
 )
 
 // compactionOffset is used to randomize the height that we compact
@@ -30,9 +30,12 @@ func init() {
 }
 
 const (
-	blockPrefix         = 0x0 // TODO: move to flat files (https://github.com/ava-labs/hypersdk/issues/553)
+	blockPrefix         = 0x0 // TODO: move to flat files (https://github.com/AnomalyFi/hypersdk/issues/553)
 	blockIDHeightPrefix = 0x1 // ID -> Height
 	blockHeightIDPrefix = 0x2 // Height -> ID (don't always need full block from disk)
+	// not consecutive only because this fork is far behind, left for future merging
+	blockResultsPrefix = 0x5
+	feeManagerPrefix   = 0x6
 )
 
 var (
@@ -57,6 +60,20 @@ func PrefixBlockIDHeightKey(id ids.ID) []byte {
 func PrefixBlockHeightIDKey(height uint64) []byte {
 	k := make([]byte, 1+consts.Uint64Len)
 	k[0] = blockHeightIDPrefix
+	binary.BigEndian.PutUint64(k[1:], height)
+	return k
+}
+
+func PrefixBlockResultsKey(height uint64) []byte {
+	k := make([]byte, 1+consts.Uint64Len)
+	k[0] = blockResultsPrefix
+	binary.BigEndian.PutUint64(k[1:], height)
+	return k
+}
+
+func PrefixFeeManagerKey(height uint64) []byte {
+	k := make([]byte, 1+consts.Uint64Len)
+	k[0] = feeManagerPrefix
 	binary.BigEndian.PutUint64(k[1:], height)
 	return k
 }
@@ -158,6 +175,35 @@ func (vm *VM) UpdateLastAccepted(blk *chain.StatelessBlock) error {
 	return nil
 }
 
+func (vm *VM) StoreBlockResultsOnDisk(blk *chain.StatelessBlock) error {
+	blockResultBytes, err := chain.MarshalResults(blk.Results())
+	feeManagerBytes := blk.FeeManager().UnitPrices().Bytes()
+	if err != nil {
+		return err
+	}
+	batch := vm.vmDB.NewBatch()
+	if err := batch.Put(PrefixBlockResultsKey(blk.Height()), blockResultBytes); err != nil {
+		return err
+	}
+	if err := batch.Put(PrefixFeeManagerKey(blk.Height()), feeManagerBytes); err != nil {
+		return err
+	}
+	expiryHeight := blk.Height() - uint64(vm.config.GetAcceptedBlockWindow())
+	if expiryHeight > 0 && expiryHeight < blk.Height() {
+		if err := batch.Delete(PrefixBlockResultsKey(expiryHeight)); err != nil {
+			return err
+		}
+		if err := batch.Delete(PrefixFeeManagerKey(expiryHeight)); err != nil {
+			return err
+		}
+	}
+	if err := batch.Write(); err != nil {
+		return fmt.Errorf("%w: unable to update block.Results", zap.Uint64("height", expiryHeight))
+	}
+	vm.Logger().Info("written block.Results to disk", zap.Uint64("block.height", blk.Height()))
+	return nil
+}
+
 func (vm *VM) GetDiskBlock(ctx context.Context, height uint64) (*chain.StatelessBlock, error) {
 	b, err := vm.vmDB.Get(PrefixBlockKey(height))
 	if err != nil {
@@ -168,6 +214,22 @@ func (vm *VM) GetDiskBlock(ctx context.Context, height uint64) (*chain.Stateless
 
 func (vm *VM) HasDiskBlock(height uint64) (bool, error) {
 	return vm.vmDB.Has(PrefixBlockKey(height))
+}
+
+func (vm *VM) GetDiskBlockResults(ctx context.Context, height uint64) ([]*chain.Result, error) {
+	r, err := vm.vmDB.Get(PrefixBlockResultsKey(height))
+	if err != nil {
+		return nil, err
+	}
+	return chain.UnmarshalResults(r)
+}
+
+func (vm *VM) GetDiskFeeManager(ctx context.Context, height uint64) ([]byte, error) {
+	f, err := vm.vmDB.Get(PrefixFeeManagerKey(height))
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
 }
 
 func (vm *VM) GetBlockHeightID(height uint64) (ids.ID, error) {

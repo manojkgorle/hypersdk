@@ -5,10 +5,10 @@
   Opinionated Framework for Building Hyper-Scalable Blockchains on Avalanche
 </p>
 <p align="center">
-  <a href="https://goreportcard.com/report/github.com/ava-labs/hypersdk"><img src="https://goreportcard.com/badge/github.com/ava-labs/hypersdk" /></a>
-  <a href="https://github.com/ava-labs/hypersdk/actions/workflows/hypersdk-ci.yml"><img src="https://github.com/ava-labs/hypersdk/actions/workflows/hypersdk-ci.yml/badge.svg" /></a>
+  <a href="https://goreportcard.com/report/github.com/AnomalyFi/hypersdk"><img src="https://goreportcard.com/badge/github.com/AnomalyFi/hypersdk" /></a>
+  <a href="https://github.com/AnomalyFi/hypersdk/actions/workflows/hypersdk-ci.yml"><img src="https://github.com/AnomalyFi/hypersdk/actions/workflows/hypersdk-ci.yml/badge.svg" /></a>
   <a href="./LICENSE" ><img src="https://img.shields.io/badge/License-Ecosystem-blue.svg" /></a>
-  <a href="https://github.com/ava-labs/hypersdk/actions/workflows/codeql-analysis.yml"><img src="https://github.com/ava-labs/hypersdk/actions/workflows/codeql-analysis.yml/badge.svg" /></a>
+  <a href="https://github.com/AnomalyFi/hypersdk/actions/workflows/codeql-analysis.yml"><img src="https://github.com/AnomalyFi/hypersdk/actions/workflows/codeql-analysis.yml/badge.svg" /></a>
 </p>
 
 ---
@@ -116,7 +116,7 @@ alternative to defining all `Auth` and/or `Actions` that can be invoked in the `
 
 Because the `hypersdk` can execute arbitrary WASM, any language (Rust, C, C++, Zig, etc.) that can
 be compiled to WASM can be used to write `programs`. You can view a collection of
-Rust-based `programs` [here](https://github.com/ava-labs/hypersdk/tree/main/x/programs/rust/examples).
+Rust-based `programs` [here](https://github.com/AnomalyFi/hypersdk/tree/main/x/programs/rust/examples).
 
 ### Account Abstraction
 The `hypersdk` provides out-of-the-box support for arbitrary transaction authorization logic.
@@ -126,8 +126,8 @@ that pays fees). These two identities could be the same (if using a simple signa
 verification `Auth` module) but may be different (if using a "gas relayer" `Auth` module).
 
 `Auth` modules may be hardcoded, like in
-[`morpheusvm`](https://github.com/ava-labs/hypersdk/tree/main/examples/morpheusvm/auth) and
-[`tokenvm`](https://github.com/ava-labs/hypersdk/tree/main/examples/tokenvm/auth), or execute
+[`morpheusvm`](https://github.com/AnomalyFi/hypersdk/tree/main/examples/morpheusvm/auth) and
+[`tokenvm`](https://github.com/AnomalyFi/hypersdk/tree/main/examples/tokenvm/auth), or execute
 a `program` (i.e. a custom deployed multi-sig). To allow for easy interaction between different
 `Auth` modules (and to ensure `Auth` modules can't interfere with each other), the
 `hypersdk` employs a standard, 33-byte addressing scheme: `<typeID><ids.ID>`. Transaction
@@ -162,7 +162,7 @@ happen.
 `hypersdk` transactions must specify the keys they will access in state (read
 and/or write) during authentication and execution so that non-conflicting transactions
 can be processed in parallel. To do this efficiently, the `hypersdk` uses
-the [`executor`](https://github.com/ava-labs/hypersdk/tree/main/executor) package, which
+the [`executor`](https://github.com/AnomalyFi/hypersdk/tree/main/executor) package, which
 can generate an execution plan for a set of transactions on-the-fly (no preprocessing required).
 `executor` is used to parallelize execution in both block building and in block verification.
 
@@ -453,7 +453,7 @@ block production (which can lead to more rejected blocks), and avoids a prolonge
 readiness wait (`hypersdk` waits to mark itself as ready until it has seen a `ValidityWindow` of blocks).
 
 Looking ahead, support for continuous block production paves the way for the introduction
-of [chain/validator-driven actions](https://github.com/ava-labs/hypersdk/issues/336), which should
+of [chain/validator-driven actions](https://github.com/AnomalyFi/hypersdk/issues/336), which should
 be included on-chain every X seconds (like a price oracle update) regardless of how many user-submitted
 transactions are present.
 
@@ -816,7 +816,7 @@ _This is a collection of community projects building on top of the `hypersdk`._
 
 ## Future Work
 _If you want to take the lead on any of these items, please
-[start a discussion](https://github.com/ava-labs/hypersdk/discussions) or reach
+[start a discussion](https://github.com/AnomalyFi/hypersdk/discussions) or reach
 out on the Avalanche Discord._
 
 * Add support for Fixed-Fee Accounts (pay set unit price no matter what)

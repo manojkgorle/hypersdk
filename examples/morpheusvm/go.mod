@@ -1,11 +1,11 @@
-module github.com/ava-labs/hypersdk/examples/morpheusvm
+module github.com/AnomalyFi/hypersdk/examples/morpheusvm
 
 go 1.21.10
 
 require (
 	github.com/ava-labs/avalanche-network-runner v1.7.4-rc.0
 	github.com/ava-labs/avalanchego v1.11.6
-	github.com/ava-labs/hypersdk v0.0.1
+	github.com/AnomalyFi/hypersdk v0.0.1
 	github.com/fatih/color v1.13.0
 	github.com/onsi/ginkgo/v2 v2.13.1
 	github.com/prometheus/client_golang v1.16.0
@@ -156,4 +156,4 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ava-labs/hypersdk => ../../
+replace github.com/AnomalyFi/hypersdk => ../../

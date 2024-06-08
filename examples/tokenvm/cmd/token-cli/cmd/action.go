@@ -10,14 +10,14 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/actions"
+	"github.com/AnomalyFi/hypersdk/utils"
 
-	frpc "github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
-	tconsts "github.com/ava-labs/hypersdk/examples/tokenvm/consts"
+	frpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
+	tconsts "github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
 )
 
 var actionCmd = &cobra.Command{

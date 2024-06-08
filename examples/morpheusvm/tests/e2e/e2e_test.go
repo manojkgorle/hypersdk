@@ -18,17 +18,17 @@ import (
 	"github.com/fatih/color"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/actions"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/auth"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
-	"github.com/ava-labs/hypersdk/rpc"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/actions"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/auth"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/consts"
+	"github.com/AnomalyFi/hypersdk/rpc"
+	"github.com/AnomalyFi/hypersdk/utils"
 
+	lrpc "github.com/AnomalyFi/hypersdk/examples/morpheusvm/rpc"
 	runner_sdk "github.com/ava-labs/avalanche-network-runner/client"
-	lrpc "github.com/ava-labs/hypersdk/examples/morpheusvm/rpc"
 	ginkgo "github.com/onsi/ginkgo/v2"
 )
 

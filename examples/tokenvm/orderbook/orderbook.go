@@ -9,10 +9,10 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	"github.com/ava-labs/hypersdk/heap"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/actions"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
+	"github.com/AnomalyFi/hypersdk/heap"
 )
 
 const allPairs = "*"

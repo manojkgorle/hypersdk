@@ -396,7 +396,7 @@ with the devnet (i.e. tx load test) and to tear it down._
 
 ## Future Work
 _If you want to take the lead on any of these items, please
-[start a discussion](https://github.com/ava-labs/hypersdk/discussions) or reach
+[start a discussion](https://github.com/AnomalyFi/hypersdk/discussions) or reach
 out on the Avalanche Discord._
 
 * Document GUI/Faucet/Feed
@@ -411,5 +411,5 @@ out on the Avalanche Discord._
 <br>
 <br>
 <p align="center">
-  <a href="https://github.com/ava-labs/hypersdk"><img width="40%" alt="powered-by-hypersdk" src="assets/hypersdk.png"></a>
+  <a href="https://github.com/AnomalyFi/hypersdk"><img width="40%" alt="powered-by-hypersdk" src="assets/hypersdk.png"></a>
 </p>

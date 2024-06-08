@@ -9,9 +9,9 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/chain"
 
-	brpc "github.com/ava-labs/hypersdk/examples/morpheusvm/rpc"
+	brpc "github.com/AnomalyFi/hypersdk/examples/morpheusvm/rpc"
 )
 
 var chainCmd = &cobra.Command{
@@ -64,8 +64,20 @@ var chainInfoCmd = &cobra.Command{
 
 var watchChainCmd = &cobra.Command{
 	Use: "watch",
-	RunE: func(_ *cobra.Command, args []string) error {
-		return handler.Root().WatchChain(hideTxs, func(uri string, networkID uint32, chainID ids.ID) (chain.Parser, error) {
+	RunE: func(_ *cobra.Command, args []string) error {		
+		pastBlocks, err := handler.Root().PromptBool("streaming from past blocks?")
+		if err != nil {
+			return err
+		}
+		var startBlock uint64
+		if pastBlocks {
+			startBlock, err = handler.Root().PromptUint64("start block")
+			if err != nil {
+				return err
+			}
+		}
+		return handler.Root().WatchChain(hideTxs, pastBlocks, startBlock, func(uri string, networkID uint32, chainID ids.ID) (chain.Parser, error) 
+		{
 			cli := brpc.NewJSONRPCClient(uri, networkID, chainID)
 			return cli.Parser(context.TODO())
 		}, handleTx)

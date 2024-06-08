@@ -12,9 +12,9 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/manifoldco/promptui"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/fees"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/fees"
+	"github.com/AnomalyFi/hypersdk/utils"
 )
 
 func (h *Handler) PromptAddress(label string) (codec.Address, error) {
@@ -155,6 +155,31 @@ func (*Handler) PromptInt(
 	}
 	rawAmount = strings.TrimSpace(rawAmount)
 	return strconv.Atoi(rawAmount)
+}
+
+func (*Handler) PromptUint64(
+	label string,
+) (uint64, error) {
+	promptText := promptui.Prompt{
+		Label: label,
+		Validate: func(input string) error {
+			if len(input) == 0 {
+				return ErrInputEmpty
+			}
+			_, err := strconv.ParseUint(input, 10, 64)
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	rawAmount, err := promptText.Run()
+	if err != nil {
+		return 0, err
+	}
+	rawAmount = strings.TrimSpace(rawAmount)
+	return strconv.ParseUint(rawAmount, 10, 64)
+
 }
 
 func (*Handler) PromptChoice(label string, max int) (int, error) {

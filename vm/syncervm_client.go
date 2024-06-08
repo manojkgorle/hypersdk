@@ -13,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/chain"
 
 	avametrics "github.com/ava-labs/avalanchego/api/metrics"
 	avasync "github.com/ava-labs/avalanchego/x/sync"

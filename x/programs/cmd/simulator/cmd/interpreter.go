@@ -9,7 +9,7 @@ import (
 	"github.com/akamensky/argparse"
 	"github.com/ava-labs/avalanchego/utils/logging"
 
-	"github.com/ava-labs/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/state"
 )
 
 var _ Cmd = (*InterpreterCmd)(nil)

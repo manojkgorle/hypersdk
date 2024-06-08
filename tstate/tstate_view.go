@@ -10,8 +10,8 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 
-	"github.com/ava-labs/hypersdk/keys"
-	"github.com/ava-labs/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/keys"
+	"github.com/AnomalyFi/hypersdk/state"
 )
 
 const defaultOps = 4
@@ -43,7 +43,7 @@ type TStateView struct {
 	// stores a map of managed keys and its permissions in the TState struct
 	// TODO: Need to handle read-only/write-only keys differently (won't prefetch a write
 	// key, see issue below)
-	// https://github.com/ava-labs/hypersdk/issues/709
+	// https://github.com/AnomalyFi/hypersdk/issues/709
 	scope        state.Keys
 	scopeStorage map[string][]byte
 

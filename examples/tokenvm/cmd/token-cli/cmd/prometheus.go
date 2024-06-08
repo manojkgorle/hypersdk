@@ -10,8 +10,8 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/hypersdk/cli"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/cli"
+	"github.com/AnomalyFi/hypersdk/utils"
 )
 
 var prometheusCmd = &cobra.Command{

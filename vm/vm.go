@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math/big"
 	"net/http"
 	"sync"
 	"time"
@@ -25,25 +26,28 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/builder"
-	"github.com/ava-labs/hypersdk/cache"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/emap"
-	"github.com/ava-labs/hypersdk/fees"
-	"github.com/ava-labs/hypersdk/gossiper"
-	"github.com/ava-labs/hypersdk/mempool"
-	"github.com/ava-labs/hypersdk/network"
-	"github.com/ava-labs/hypersdk/rpc"
-	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/trace"
-	"github.com/ava-labs/hypersdk/utils"
-	"github.com/ava-labs/hypersdk/workers"
+	"github.com/AnomalyFi/hypersdk/builder"
+	"github.com/AnomalyFi/hypersdk/cache"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/emap"
+	"github.com/AnomalyFi/hypersdk/fees"
+	"github.com/AnomalyFi/hypersdk/gossiper"
+	"github.com/AnomalyFi/hypersdk/mempool"
+	"github.com/AnomalyFi/hypersdk/network"
+	"github.com/AnomalyFi/hypersdk/rpc"
+	"github.com/AnomalyFi/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/trace"
+	"github.com/AnomalyFi/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/workers"
 
 	avametrics "github.com/ava-labs/avalanchego/api/metrics"
 	avacache "github.com/ava-labs/avalanchego/cache"
 	avatrace "github.com/ava-labs/avalanchego/trace"
 	avautils "github.com/ava-labs/avalanchego/utils"
 	avasync "github.com/ava-labs/avalanchego/x/sync"
+
+	"github.com/ethereum/go-ethereum/ethclient"
+	ethrpc "github.com/ethereum/go-ethereum/rpc"
 )
 
 type VM struct {
@@ -119,6 +123,12 @@ type VM struct {
 
 	ready chan struct{}
 	stop  chan struct{}
+
+	subCh chan chain.ETHBlock
+
+	L1Head *big.Int
+
+	mu sync.Mutex
 }
 
 func New(c Controller, v *version.Semantic) *VM {
@@ -147,6 +157,8 @@ func (vm *VM) Initialize(
 	vm.seenValidityWindow = make(chan struct{})
 	vm.ready = make(chan struct{})
 	vm.stop = make(chan struct{})
+	vm.L1Head = big.NewInt(0)
+	vm.subCh = make(chan chain.ETHBlock)
 	gatherer := avametrics.NewMultiGatherer()
 	if err := vm.snowCtx.Metrics.Register(gatherer); err != nil {
 		return err
@@ -292,10 +304,27 @@ func (vm *VM) Initialize(
 		}
 		snowCtx.Log.Info("genesis state created", zap.Stringer("root", root))
 
+		// Attach L1 Head to genesis
+		ethRpcUrl := vm.config.GetETHL1RPC()
+		ethRpcCli, err := ethclient.Dial(ethRpcUrl)
+		if err != nil {
+			snowCtx.Log.Error("unable to connect to eth-l1", zap.Error(err))
+			return err
+		}
+
+		ethBlockHeader, err := ethRpcCli.HeaderByNumber(context.Background(), nil)
+		if err != nil {
+			snowCtx.Log.Error("unable to fetch eth-l1 block header", zap.Error(err))
+			return err
+		}
+
+		blk := chain.NewGenesisBlock(root)
+		blk.L1Head = ethBlockHeader.Number.Int64()
+
 		// Create genesis block
 		genesisBlk, err := chain.ParseStatefulBlock(
 			ctx,
-			chain.NewGenesisBlock(root),
+			blk,
 			nil,
 			choices.Accepted,
 			vm,
@@ -379,6 +408,8 @@ func (vm *VM) Initialize(
 	// Startup block builder and gossiper
 	go vm.builder.Run()
 	go vm.gossiper.Run(gossipSender)
+
+	go vm.ETHL1HeadSubscribe()
 
 	// Wait until VM is ready and then send a state sync message to engine
 	go vm.markReady()
@@ -493,7 +524,7 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 
 			// TODO: add a config to FATAL here if could not state sync (likely won't be
 			// able to recover in networks where no one has the full state, bypass
-			// still starts sync): https://github.com/ava-labs/hypersdk/issues/438
+			// still starts sync): https://github.com/AnomalyFi/hypersdk/issues/438
 		}
 
 		// Backfill seen transactions, if any. This will exit as soon as we reach
@@ -1097,4 +1128,71 @@ func (vm *VM) loadAcceptedBlocks(ctx context.Context) error {
 func (vm *VM) Fatal(msg string, fields ...zap.Field) {
 	vm.snowCtx.Log.Fatal(msg, fields...)
 	panic("fatal error")
+}
+
+func (vm *VM) ETHL1HeadSubscribe() {
+	// Start the Ethereum L1 head subscription.
+	ethWSUrl := vm.config.GetETHL1WS()
+	client, err := ethrpc.Dial(ethWSUrl)
+	if err != nil {
+		vm.Logger().Error("unable to dial eth-l1", zap.String("l1-ws", ethWSUrl), zap.Error(err))
+	}
+	//subch := make(chan ETHBlock)
+
+	// Ensure that subch receives the latest block.
+	go func() {
+		for i := 0; ; i++ {
+			if i > 0 {
+				time.Sleep(500 * time.Millisecond)
+			}
+			subscribeBlocks(client, vm.subCh)
+		}
+	}()
+
+	// Start the goroutine to update vm.L1Head.
+	go func() {
+		for block := range vm.subCh {
+			vm.mu.Lock()
+			//block.Number.String()
+			head := block.Number.ToInt()
+			if head.Cmp(vm.L1Head) < 1 {
+				//This block is not newer than the current block which can occur because of an L1 reorg.
+				continue
+			}
+			vm.L1Head = block.Number.ToInt()
+			vm.Logger().Debug("latest eth-l1 block: ", zap.Uint64("block number", block.Number.ToInt().Uint64()))
+			vm.mu.Unlock()
+		}
+	}()
+
+}
+
+// subscribeBlocks runs in its own goroutine and maintains
+// a subscription for new blocks.
+func subscribeBlocks(client *ethrpc.Client, subch chan chain.ETHBlock) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Subscribe to new blocks.
+	sub, err := client.EthSubscribe(ctx, subch, "newHeads")
+	if err != nil {
+		fmt.Println("subscribe error:", err)
+		return
+	}
+
+	// The connection is established now.
+	// Update the channel with the current block.
+	var lastBlock chain.ETHBlock
+	err = client.CallContext(ctx, &lastBlock, "eth_getBlockByNumber", "latest", false)
+	if err != nil {
+		fmt.Println("can't get latest block:", err)
+		return
+	}
+
+	subch <- lastBlock
+
+	// The subscription will deliver events to the channel. Wait for the
+	// subscription to end for any reason, then loop around to re-establish
+	// the connection.
+	fmt.Println("connection lost: ", <-sub.Err())
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
 
 	ametrics "github.com/ava-labs/avalanchego/api/metrics"
 )

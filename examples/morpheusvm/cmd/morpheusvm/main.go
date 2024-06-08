@@ -13,8 +13,8 @@ import (
 	"github.com/ava-labs/avalanchego/vms/rpcchainvm"
 	"github.com/spf13/cobra"
 
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/cmd/morpheusvm/version"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/controller"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/cmd/morpheusvm/version"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/controller"
 )
 
 var rootCmd = &cobra.Command{

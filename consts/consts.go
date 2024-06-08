@@ -27,4 +27,15 @@ const (
 	MaxUint64Offset       = 63
 	MaxUint64             = ^uint64(0)
 	MillisecondsPerSecond = 1000
+
+	// NMT
+	// See https://github.com/celestiaorg/nmt/blob/master/nmt.go#L477
+	// 8 + 8 + 32
+	NMTRootLen = 48
+	// default
+	NMTIDLen = 8
+	// no more than 20% of [NetworkSizeLimit]
+	MaxNMTProofBytes = 408_944
+	// no more than 10% of the [NetworkSizeLimit]
+	MaxNSTxMappingBytes = 204_472
 )

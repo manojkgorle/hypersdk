@@ -3,4 +3,11 @@
 
 package actions
 
+const (
+	transferID      uint8 = 0
+	NMTTestActionID uint8 = 1
+)
+
+var DefaultNMTNamespace = make([]byte, 8)
+
 const TransferComputeUnits = 1

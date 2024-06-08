@@ -5,6 +5,7 @@ package rpc
 
 import (
 	"context"
+	"encoding/binary"
 	"net/http"
 	"strings"
 	"sync"
@@ -14,10 +15,10 @@ import (
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/gorilla/websocket"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/fees"
-	"github.com/ava-labs/hypersdk/pubsub"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/fees"
+	"github.com/AnomalyFi/hypersdk/pubsub"
+	"github.com/AnomalyFi/hypersdk/utils"
 )
 
 type WebSocketClient struct {
@@ -139,18 +140,25 @@ func (c *WebSocketClient) RegisterBlocks() error {
 	return c.mb.Send([]byte{BlockMode})
 }
 
+func (c *WebSocketClient) RegisterBlocksFrom(blockNumber uint64) error {
+	if c.closed {
+		return ErrClosed
+	}
+	return c.mb.Send(binary.BigEndian.AppendUint64([]byte{BlockMode}, blockNumber))
+}
+
 // Listen listens for block messages from the streaming server.
 func (c *WebSocketClient) ListenBlock(
 	ctx context.Context,
 	parser chain.Parser,
-) (*chain.StatefulBlock, []*chain.Result, fees.Dimensions, error) {
+) (*chain.StatefulBlock, []*chain.Result, fees.Dimensions, *ids.ID, error) {
 	select {
 	case msg := <-c.pendingBlocks:
 		return UnpackBlockMessage(msg, parser)
 	case <-c.readStopped:
-		return nil, nil, fees.Dimensions{}, c.err
+		return nil, nil, fees.Dimensions{}, nil, c.err
 	case <-ctx.Done():
-		return nil, nil, fees.Dimensions{}, ctx.Err()
+		return nil, nil, fees.Dimensions{}, nil, ctx.Err()
 	}
 }
 

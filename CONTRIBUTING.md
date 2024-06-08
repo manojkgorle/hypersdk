@@ -15,7 +15,7 @@ To contribute to `hypersdk`, you'll need:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/ava-labs/hypersdk.git
+git clone https://github.com/AnomalyFi/hypersdk.git
 cd hypersdk
 ```
 

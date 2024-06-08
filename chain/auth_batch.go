@@ -8,7 +8,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/logging"
 
-	"github.com/ava-labs/hypersdk/workers"
+	"github.com/AnomalyFi/hypersdk/workers"
 )
 
 const authWorkerBacklog = 16_384

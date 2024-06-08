@@ -9,7 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/set"
 
-	"github.com/ava-labs/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/state"
 
 	uatomic "go.uber.org/atomic"
 )

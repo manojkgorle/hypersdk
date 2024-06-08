@@ -8,7 +8,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 
-	"github.com/ava-labs/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/state"
 )
 
 var (

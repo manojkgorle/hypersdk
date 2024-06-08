@@ -8,10 +8,10 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/fees"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/fees"
 )
 
 const (
@@ -28,38 +28,64 @@ func PackBlockMessage(b *chain.StatelessBlock) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	p.PackID(b.ID())
 	p.PackBytes(mresults)
 	p.PackFixedBytes(b.FeeManager().UnitPrices().Bytes())
+	return p.Bytes(), p.Err()
+}
+
+func PackBlockMessageForBackwardStream(b *chain.StatefulBlock, results []*chain.Result, feeBytes []byte) ([]byte, error) {
+	size := b.Size() + consts.IntLen + codec.CummSize(results) + chain.DimensionsLen
+	p := codec.NewWriter(size, consts.MaxInt)
+	blkID, err := b.ID()
+	if err != nil {
+		return nil, err
+	}
+	p.PackID(blkID)
+	blkBytes, err := b.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(blkBytes)
+	mresults, err := chain.MarshalResults(results)
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(mresults)
+	p.PackFixedBytes(feeBytes)
 	return p.Bytes(), p.Err()
 }
 
 func UnpackBlockMessage(
 	msg []byte,
 	parser chain.Parser,
-) (*chain.StatefulBlock, []*chain.Result, fees.Dimensions, error) {
+) (*chain.StatefulBlock, []*chain.Result, fees.Dimensions, *ids.ID, error) {
 	p := codec.NewReader(msg, consts.MaxInt)
+	var realId ids.ID
+	p.UnpackID(false, &realId)
+
 	var blkMsg []byte
 	p.UnpackBytes(-1, true, &blkMsg)
 	blk, err := chain.UnmarshalBlock(blkMsg, parser)
 	if err != nil {
-		return nil, nil, fees.Dimensions{}, err
+		return nil, nil, fees.Dimensions{}, nil, err
 	}
 	var resultsMsg []byte
 	p.UnpackBytes(-1, true, &resultsMsg)
 	results, err := chain.UnmarshalResults(resultsMsg)
 	if err != nil {
-		return nil, nil, fees.Dimensions{}, err
+		return nil, nil, fees.Dimensions{}, nil, err
 	}
 	pricesMsg := make([]byte, fees.DimensionsLen)
 	p.UnpackFixedBytes(fees.DimensionsLen, &pricesMsg)
 	prices, err := fees.UnpackDimensions(pricesMsg)
 	if err != nil {
-		return nil, nil, fees.Dimensions{}, err
+		return nil, nil, fees.Dimensions{}, nil, err
 	}
 	if !p.Empty() {
-		return nil, nil, fees.Dimensions{}, chain.ErrInvalidObject
+		return nil, nil, fees.Dimensions{}, nil, chain.ErrInvalidObject
 	}
-	return blk, results, prices, p.Err()
+	return blk, results, prices, &realId, p.Err()
 }
 
 // Could be a better place for these methods

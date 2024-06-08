@@ -13,8 +13,8 @@ import (
 
 	"github.com/near/borsh-go"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/state"
 )
 
 func CompileTest(programName string) error {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/near/borsh-go"
 
-	"github.com/ava-labs/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/codec"
 )
 
 const (

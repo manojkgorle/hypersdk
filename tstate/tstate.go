@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/x/merkledb"
 	"go.opentelemetry.io/otel/attribute"
 
-	"github.com/ava-labs/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/state"
 
 	oteltrace "go.opentelemetry.io/otel/trace"
 )

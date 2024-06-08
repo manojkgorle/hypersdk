@@ -22,4 +22,4 @@ gofumpt -l -w .
 
 echo "gci files"
 go install -v github.com/daixiang0/gci@v0.12.1
-gci write --skip-generated -s standard -s default -s blank -s dot -s "prefix(github.com/ava-labs/hypersdk)" -s alias --custom-order .
+gci write --skip-generated -s standard -s default -s blank -s dot -s "prefix(github.com/AnomalyFi/hypersdk)" -s alias --custom-order .

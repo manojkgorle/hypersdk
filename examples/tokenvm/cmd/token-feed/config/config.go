@@ -4,8 +4,8 @@
 package config
 
 import (
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
 )
 
 type Config struct {

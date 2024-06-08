@@ -27,6 +27,9 @@ STATESYNC_DELAY=${STATESYNC_DELAY:-0}
 MIN_BLOCK_GAP=${MIN_BLOCK_GAP:-100}
 STORE_TXS=${STORE_TXS:-false}
 UNLIMITED_USAGE=${UNLIMITED_USAGE:-false}
+STORE_BLOCK_RESULTS_ON_DISK=${STORE_BLOCK_RESULTS_ON_DISK:-true}
+ETHL1RPC=${ETHL1RPC:-http://localhost:8545}
+ETHL1WS=${ETHL1WS:-ws://localhost:8546}
 ADDRESS=${ADDRESS:-morpheus1qrzvk4zlwj9zsacqgtufx7zvapd3quufqpxk5rsdd4633m4wz2fdjk97rwu}
 if [[ ${MODE} != "run" ]]; then
   LOG_LEVEL=DEBUG
@@ -56,6 +59,7 @@ echo MIN_BLOCK_GAP \(ms\): "${MIN_BLOCK_GAP}"
 echo STORE_TXS: "${STORE_TXS}"
 echo WINDOW_TARGET_UNITS: "${WINDOW_TARGET_UNITS}"
 echo MAX_BLOCK_UNITS: "${MAX_BLOCK_UNITS}"
+echo STORE_BLOCK_RESULTS_ON_DISK: ${STORE_BLOCK_RESULTS_ON_DISK}
 echo ADDRESS: "${ADDRESS}"
 
 ############################
@@ -159,7 +163,10 @@ cat <<EOF > "${TMPDIR}"/morpheusvm.config
   "streamingBacklogSize": 10000000,
   "logLevel": "${LOG_LEVEL}",
   "continuousProfilerDir":"${TMPDIR}/morpheusvm-e2e-profiles/*",
-  "stateSyncServerDelay": ${STATESYNC_DELAY}
+  "stateSyncServerDelay": ${STATESYNC_DELAY},
+  "storeBlockResultsOnDisk": ${STORE_BLOCK_RESULTS_ON_DISK},
+  "ethRPCAddr": "${ETHL1RPC}",
+  "ethWSAddr": "${ETHL1WS}"
 }
 EOF
 mkdir -p "${TMPDIR}"/morpheusvm-e2e-profiles

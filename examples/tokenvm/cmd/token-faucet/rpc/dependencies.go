@@ -8,7 +8,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/codec"
 )
 
 type Manager interface {

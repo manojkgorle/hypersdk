@@ -15,11 +15,11 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/x/merkledb"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/executor"
-	"github.com/ava-labs/hypersdk/fees"
-	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/workers"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/executor"
+	"github.com/AnomalyFi/hypersdk/fees"
+	"github.com/AnomalyFi/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/workers"
 )
 
 type (
@@ -66,6 +66,7 @@ type VM interface {
 
 	IsBootstrapped() bool
 	LastAcceptedBlock() *StatelessBlock
+	LastL1Head() int64
 	GetStatelessBlock(context.Context, ids.ID) (*StatelessBlock, error)
 
 	GetVerifyContext(ctx context.Context, blockHeight uint64, parent ids.ID) (VerifyContext, error)
@@ -79,6 +80,9 @@ type VM interface {
 	GetTargetBuildDuration() time.Duration
 	GetTransactionExecutionCores() int
 	GetStateFetchConcurrency() int
+
+	GetStoreBlockResultsOnDisk() bool
+	StoreBlockResultsOnDisk(*StatelessBlock) error
 
 	Verified(context.Context, *StatelessBlock)
 	Rejected(context.Context, *StatelessBlock)
@@ -224,6 +228,8 @@ type Action interface {
 	//
 	// If any key is removed and then re-created, this will count as a creation instead of a modification.
 	StateKeys(actor codec.Address, actionID ids.ID) state.Keys
+
+	NMTNamespace() []byte
 
 	// Execute actually runs the [Action]. Any state changes that the [Action] performs should
 	// be done here.

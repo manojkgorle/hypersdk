@@ -5,6 +5,7 @@ package cli
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -16,13 +17,13 @@ import (
 	"github.com/ava-labs/avalanchego/utils/units"
 	"gopkg.in/yaml.v2"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/fees"
-	"github.com/ava-labs/hypersdk/pubsub"
-	"github.com/ava-labs/hypersdk/rpc"
-	"github.com/ava-labs/hypersdk/utils"
-	"github.com/ava-labs/hypersdk/window"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/fees"
+	"github.com/AnomalyFi/hypersdk/pubsub"
+	"github.com/AnomalyFi/hypersdk/rpc"
+	"github.com/AnomalyFi/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/window"
 )
 
 func (h *Handler) ImportChain() error {
@@ -191,7 +192,7 @@ func (h *Handler) PrintChainInfo() error {
 	return nil
 }
 
-func (h *Handler) WatchChain(hideTxs bool, getParser func(string, uint32, ids.ID) (chain.Parser, error), handleTx func(*chain.Transaction, *chain.Result)) error {
+func (h *Handler) WatchChain(hideTxs bool, pastBlocks bool, startBlock uint64, getParser func(string, uint32, ids.ID) (chain.Parser, error), handleTx func(*chain.Transaction, *chain.Result)) error {
 	ctx := context.Background()
 	chainID, uris, err := h.PromptChain("select chainID", nil)
 	if err != nil {
@@ -215,8 +216,15 @@ func (h *Handler) WatchChain(hideTxs bool, getParser func(string, uint32, ids.ID
 		return err
 	}
 	defer scli.Close()
-	if err := scli.RegisterBlocks(); err != nil {
-		return err
+	if pastBlocks {
+		utils.Outf("{{green}}listening blocks from block at height %d\n", startBlock)
+		if err := scli.RegisterBlocksFrom(startBlock); err != nil {
+			return err
+		}
+	} else {
+		if err := scli.RegisterBlocks(); err != nil {
+			return err
+		}
 	}
 	utils.Outf("{{green}}watching for new blocks on %s 👀{{/}}\n", chainID)
 	var (
@@ -226,8 +234,9 @@ func (h *Handler) WatchChain(hideTxs bool, getParser func(string, uint32, ids.ID
 		tpsWindow         = window.Window{}
 	)
 	for ctx.Err() == nil {
-		blk, results, prices, err := scli.ListenBlock(ctx, parser)
+		blk, results, prices, realId, err := scli.ListenBlock(ctx, parser)
 		if err != nil {
+			utils.Outf("{{red}}unable to listen block: %s\n", err.Error())
 			return err
 		}
 		consumed := fees.Dimensions{}
@@ -242,6 +251,7 @@ func (h *Handler) WatchChain(hideTxs bool, getParser func(string, uint32, ids.ID
 		if start.IsZero() {
 			start = now
 		}
+		nmtRootStr := base64.StdEncoding.EncodeToString(blk.NMTRoot)
 		if lastBlock != 0 {
 			since := now.Unix() - lastBlock
 			newWindow, err := window.Roll(tpsWindow, int(since))
@@ -253,10 +263,13 @@ func (h *Handler) WatchChain(hideTxs bool, getParser func(string, uint32, ids.ID
 			runningDuration := time.Since(start)
 			tpsDivisor := min(window.WindowSize, runningDuration.Seconds())
 			utils.Outf(
-				"{{green}}height:{{/}}%d {{green}}txs:{{/}}%d {{green}}root:{{/}}%s {{green}}size:{{/}}%.2fKB {{green}}units consumed:{{/}} [%s] {{green}}unit prices:{{/}} [%s] [{{green}}TPS:{{/}}%.2f {{green}}latency:{{/}}%dms {{green}}gap:{{/}}%dms]\n",
+				"{{green}}height:{{/}}%d l1head:{{/}}%s {{green}}txs:{{/}}%d {{green}}root:{{/}}%s {{green}}nmtRoot:{{/}}%s {{green}}blockId:{{/}}%s {{green}}size:{{/}}%.2fKB {{green}}units consumed:{{/}} [%s] {{green}}unit prices:{{/}} [%s] [{{green}}TPS:{{/}}%.2f {{green}}latency:{{/}}%dms {{green}}gap:{{/}}%dms]\n",
 				blk.Hght,
+				blk.L1Head,
 				len(blk.Txs),
 				blk.StateRoot,
+				nmtRootStr,
+				realId,
 				float64(blk.Size())/units.KiB,
 				ParseDimensions(consumed),
 				ParseDimensions(prices),
@@ -266,10 +279,13 @@ func (h *Handler) WatchChain(hideTxs bool, getParser func(string, uint32, ids.ID
 			)
 		} else {
 			utils.Outf(
-				"{{green}}height:{{/}}%d {{green}}txs:{{/}}%d {{green}}root:{{/}}%s {{green}}size:{{/}}%.2fKB {{green}}units consumed:{{/}} [%s] {{green}}unit prices:{{/}} [%s]\n",
+				"{{green}}height:{{/}}%d l1head:{{/}}%s {{green}}txs:{{/}}%d {{green}}root:{{/}}%s {{green}}root:{{/}}%s {{green}}blockId:{{/}}%s {{green}}size:{{/}}%.2fKB {{green}}units consumed:{{/}} [%s] {{green}}unit prices:{{/}} [%s]\n",
 				blk.Hght,
+				blk.L1Head,
 				len(blk.Txs),
 				blk.StateRoot,
+				nmtRootStr,
+				realId,
 				float64(blk.Size())/units.KiB,
 				ParseDimensions(consumed),
 				ParseDimensions(prices),

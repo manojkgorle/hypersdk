@@ -16,17 +16,17 @@ import (
 	"github.com/ava-labs/avalanchego/utils/timer"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/challenge"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/config"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	"github.com/ava-labs/hypersdk/rpc"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/actions"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/auth"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/challenge"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-faucet/config"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
+	"github.com/AnomalyFi/hypersdk/rpc"
+	"github.com/AnomalyFi/hypersdk/utils"
 
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
+	trpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/rpc"
 )
 
 type Manager struct {

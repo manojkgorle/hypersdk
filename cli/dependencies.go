@@ -4,7 +4,7 @@
 package cli
 
 import (
-	"github.com/ava-labs/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/codec"
 )
 
 type Controller interface {

@@ -13,12 +13,12 @@ import (
 	"github.com/ava-labs/avalanchego/utils/profiler"
 	"github.com/ava-labs/avalanchego/x/merkledb"
 
-	"github.com/ava-labs/hypersdk/builder"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/gossiper"
-	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/trace"
+	"github.com/AnomalyFi/hypersdk/builder"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/gossiper"
+	"github.com/AnomalyFi/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/trace"
 
 	avametrics "github.com/ava-labs/avalanchego/api/metrics"
 	avatrace "github.com/ava-labs/avalanchego/trace"
@@ -37,6 +37,7 @@ type Config interface {
 	GetMempoolSponsorSize() int
 	GetMempoolExemptSponsors() []codec.Address
 	GetStreamingBacklogSize() int
+	GetStoreBlockResultsOnDisk() bool
 	GetStateHistoryLength() int               // how many roots back of data to keep to serve state queries
 	GetIntermediateNodeCacheSize() int        // how many bytes to keep in intermediate cache
 	GetStateIntermediateWriteBufferSize() int // how many bytes to keep unwritten in intermediate cache
@@ -54,6 +55,8 @@ type Config interface {
 	GetProcessingBuildSkip() int
 	GetTargetGossipDuration() time.Duration
 	GetBlockCompactionFrequency() int
+	GetETHL1RPC() string
+	GetETHL1WS() string
 }
 
 type Genesis interface {

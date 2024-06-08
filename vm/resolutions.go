@@ -17,12 +17,12 @@ import (
 	"github.com/ava-labs/avalanchego/x/merkledb"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/builder"
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/executor"
-	"github.com/ava-labs/hypersdk/fees"
-	"github.com/ava-labs/hypersdk/gossiper"
-	"github.com/ava-labs/hypersdk/workers"
+	"github.com/AnomalyFi/hypersdk/builder"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/executor"
+	"github.com/AnomalyFi/hypersdk/fees"
+	"github.com/AnomalyFi/hypersdk/gossiper"
+	"github.com/AnomalyFi/hypersdk/workers"
 )
 
 var (
@@ -71,6 +71,11 @@ func (vm *VM) Rules(t int64) chain.Rules {
 
 func (vm *VM) LastAcceptedBlock() *chain.StatelessBlock {
 	return vm.lastAccepted
+}
+
+func (vm *VM) LastL1Head() int64 {
+	// var f = <-vm.subCh
+	return vm.L1Head.Int64()
 }
 
 func (vm *VM) IsBootstrapped() bool {
@@ -384,6 +389,10 @@ func (vm *VM) RecordStateOperations(c int) {
 
 func (vm *VM) GetVerifyAuth() bool {
 	return vm.config.GetVerifyAuth()
+}
+
+func (vm *VM) GetStoreBlockResultsOnDisk() bool {
+	return vm.config.GetStoreBlockResultsOnDisk()
 }
 
 func (vm *VM) RecordTxsGossiped(c int) {

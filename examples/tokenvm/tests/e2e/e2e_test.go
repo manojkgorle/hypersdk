@@ -18,17 +18,17 @@ import (
 	"github.com/fatih/color"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/actions"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/auth"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/consts"
-	"github.com/ava-labs/hypersdk/rpc"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/actions"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/auth"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/consts"
+	"github.com/AnomalyFi/hypersdk/rpc"
 
+	trpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/rpc"
+	hutils "github.com/AnomalyFi/hypersdk/utils"
 	runner_sdk "github.com/ava-labs/avalanche-network-runner/client"
-	trpc "github.com/ava-labs/hypersdk/examples/tokenvm/rpc"
-	hutils "github.com/ava-labs/hypersdk/utils"
 	ginkgo "github.com/onsi/ginkgo/v2"
 )
 

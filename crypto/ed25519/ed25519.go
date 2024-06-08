@@ -8,7 +8,7 @@ import (
 
 	"github.com/hdevalence/ed25519consensus"
 
-	"github.com/ava-labs/hypersdk/crypto"
+	"github.com/AnomalyFi/hypersdk/crypto"
 )
 
 type (

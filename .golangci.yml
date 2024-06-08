@@ -113,7 +113,7 @@ linters-settings:
       - default
       - blank
       - dot
-      - prefix(github.com/ava-labs/hypersdk)
+      - prefix(github.com/AnomalyFi/hypersdk)
       - alias
     skip-generated: true
     custom-order: true

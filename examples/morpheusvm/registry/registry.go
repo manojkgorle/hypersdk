@@ -6,11 +6,11 @@ package registry
 import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 
-	"github.com/ava-labs/hypersdk/chain"
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/actions"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/auth"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
+	"github.com/AnomalyFi/hypersdk/chain"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/actions"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/auth"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/consts"
 )
 
 // Setup types

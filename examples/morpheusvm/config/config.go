@@ -13,12 +13,12 @@ import (
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/profiler"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/config"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/consts"
-	"github.com/ava-labs/hypersdk/examples/morpheusvm/version"
-	"github.com/ava-labs/hypersdk/trace"
-	"github.com/ava-labs/hypersdk/vm"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/config"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/consts"
+	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/version"
+	"github.com/AnomalyFi/hypersdk/trace"
+	"github.com/AnomalyFi/hypersdk/vm"
 )
 
 var _ vm.Config = (*Config)(nil)
@@ -46,7 +46,8 @@ type Config struct {
 	ContinuousProfilerDir string `json:"continuousProfilerDir"` // "*" is replaced with rand int
 
 	// Streaming settings
-	StreamingBacklogSize int `json:"streamingBacklogSize"`
+	StreamingBacklogSize    int  `json:"streamingBacklogSize"`
+	StoreBlockResultsOnDisk bool `json:"storeBlockResultsOnDisk"`
 
 	// Mempool
 	MempoolSize           int      `json:"mempoolSize"`
@@ -61,6 +62,10 @@ type Config struct {
 
 	// State Sync
 	StateSyncServerDelay time.Duration `json:"stateSyncServerDelay"` // for testing
+
+	// ETH L1
+	ETHRPCAddr string `json:"ethRPCAddr"`
+	ETHWSAddr  string `json:"ethWSAddr"`
 
 	loaded               bool
 	nodeID               ids.NodeID
@@ -100,6 +105,7 @@ func (c *Config) setDefault() {
 	c.MempoolSponsorSize = c.Config.GetMempoolSponsorSize()
 	c.StateSyncServerDelay = c.Config.GetStateSyncServerDelay()
 	c.StreamingBacklogSize = c.Config.GetStreamingBacklogSize()
+	c.StoreBlockResultsOnDisk = c.Config.GetStoreBlockResultsOnDisk()
 	c.VerifyAuth = c.Config.GetVerifyAuth()
 	c.StoreTransactions = defaultStoreTransactions
 }
@@ -124,6 +130,7 @@ func (c *Config) GetTraceConfig() *trace.Config {
 }
 func (c *Config) GetStateSyncServerDelay() time.Duration { return c.StateSyncServerDelay }
 func (c *Config) GetStreamingBacklogSize() int           { return c.StreamingBacklogSize }
+func (c *Config) GetStoreBlockResultsOnDisk() bool       { return c.StoreBlockResultsOnDisk }
 func (c *Config) GetContinuousProfilerConfig() *profiler.Config {
 	if len(c.ContinuousProfilerDir) == 0 {
 		return &profiler.Config{Enabled: false}
@@ -141,3 +148,5 @@ func (c *Config) GetContinuousProfilerConfig() *profiler.Config {
 func (c *Config) GetVerifyAuth() bool        { return c.VerifyAuth }
 func (c *Config) GetStoreTransactions() bool { return c.StoreTransactions }
 func (c *Config) Loaded() bool               { return c.loaded }
+func (c *Config) GetETHL1RPC() string        { return c.ETHRPCAddr }
+func (c *Config) GetETHL1WS() string         { return c.ETHWSAddr }

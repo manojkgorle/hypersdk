@@ -16,13 +16,13 @@ import (
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/crypto/ed25519"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/config"
-	"github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/manager"
-	"github.com/ava-labs/hypersdk/server"
-	"github.com/ava-labs/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-faucet/config"
+	"github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-faucet/manager"
+	"github.com/AnomalyFi/hypersdk/server"
+	"github.com/AnomalyFi/hypersdk/utils"
 
-	frpc "github.com/ava-labs/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
+	frpc "github.com/AnomalyFi/hypersdk/examples/tokenvm/cmd/token-faucet/rpc"
 )
 
 var (

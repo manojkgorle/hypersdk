@@ -19,13 +19,15 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
-	"github.com/ava-labs/hypersdk/codec"
-	"github.com/ava-labs/hypersdk/consts"
-	"github.com/ava-labs/hypersdk/fees"
-	"github.com/ava-labs/hypersdk/state"
-	"github.com/ava-labs/hypersdk/utils"
-	"github.com/ava-labs/hypersdk/window"
-	"github.com/ava-labs/hypersdk/workers"
+	"github.com/AnomalyFi/hypersdk/codec"
+	"github.com/AnomalyFi/hypersdk/consts"
+	"github.com/AnomalyFi/hypersdk/fees"
+	"github.com/AnomalyFi/hypersdk/state"
+	"github.com/AnomalyFi/hypersdk/utils"
+	"github.com/AnomalyFi/hypersdk/window"
+	"github.com/AnomalyFi/hypersdk/workers"
+
+	ethhex "github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 var (
@@ -40,6 +42,8 @@ type StatefulBlock struct {
 
 	Txs []*Transaction `json:"txs"`
 
+	L1Head int64 `json:"l1_head"`
+
 	// StateRoot is the root of the post-execution state
 	// of [Prnt].
 	//
@@ -49,6 +53,11 @@ type StatefulBlock struct {
 	// blocking the consensus engine from voting on the block,
 	// starting the verification of another block, etc.
 	StateRoot ids.ID `json:"stateRoot"`
+
+	NMTRoot []byte `json:"nmtRoot"`
+
+	NMTNamespaceToTxIndexes map[string][]int     `json:"namespaceToTxIndex"`
+	NMTProofs               map[string]nmt.Proof `json:"nmtProofs"`
 
 	size int
 
@@ -86,6 +95,10 @@ func NewGenesisBlock(root ids.ID) *StatefulBlock {
 	}
 }
 
+type ETHBlock struct {
+	Number *ethhex.Big
+}
+
 // Stateless is defined separately from "Block"
 // in case external packages needs use the stateful block
 // without mocking VM or parent block
@@ -113,6 +126,7 @@ func NewBlock(vm VM, parent snowman.Block, tmstp int64) *StatelessBlock {
 			Prnt:   parent.ID(),
 			Tmstmp: tmstp,
 			Hght:   parent.Height() + 1,
+			L1Head: vm.LastL1Head(),
 		},
 		vm: vm,
 		st: choices.Processing,
@@ -228,8 +242,67 @@ func (b *StatelessBlock) initializeBuilt(
 	results []*Result,
 	feeManager *fees.Manager,
 ) error {
-	_, span := b.vm.Tracer().Start(ctx, "StatelessBlock.initializeBuilt")
+	ctx, span := b.vm.Tracer().Start(ctx, "StatelessBlock.initializeBuilt")
 	defer span.End()
+
+	// NMT generation must before block marshal
+	_, nmtSpan := b.vm.Tracer().Start(ctx, "StatelessBlock.NMTGen")
+	txsDataToProve := make([][]byte, 0, len(b.Txs))
+	// store namespaces used in this block
+	nmtNSs := make([][]byte, 0, 10)
+	NMTNamespaceToTxIndexes := make(map[string][]int)
+	for i := 0; i < len(b.Txs); i++ {
+		tx := b.Txs[i]
+		txResult := results[i]
+		txID := tx.ID()
+
+		nID := tx.Action.NMTNamespace()
+		nmtNSs = append(nmtNSs, nID)
+
+		if _, ok := NMTNamespaceToTxIndexes[hex.EncodeToString(nID)]; !ok {
+			NMTNamespaceToTxIndexes[hex.EncodeToString(nID)] = make([]int, 0, 1)
+		}
+		a := NMTNamespaceToTxIndexes[hex.EncodeToString(nID)]
+		a = append(a, i)
+		NMTNamespaceToTxIndexes[hex.EncodeToString(nID)] = a
+
+		txData := make([]byte, 1+len(txID[:])+len(txResult.Output))
+		txData = append(txData, nID...)
+		txData = append(txData, txID[:]...)
+		txData = append(txData, txResult.Output...)
+		txsDataToProve = append(txsDataToProve, txData)
+	}
+
+	// default tree uses 8 bytes as namespace id
+	nmtTree := nmt.New(sha256.New())
+	for _, d := range txsDataToProve {
+		if err := nmtTree.Push(d); err != nil {
+			b.vm.Logger().Warn("unable to push element to nmt tree", zap.Error(err))
+			return ErrPushingElementInNMTTree
+		}
+	}
+
+	nmtRoot, err := nmtTree.Root()
+	if err != nil {
+		b.vm.Logger().Warn("unable to compute nmt root", zap.Error(err))
+		return ErrComputingNMTRoot
+	}
+
+	NMTProofs := make(map[string]nmt.Proof)
+	for _, nID := range nmtNSs {
+		proof, err := nmtTree.ProveNamespace(nID)
+		if err != nil {
+			continue
+		}
+
+		NMTProofs[hex.EncodeToString(nID)] = proof
+	}
+
+	b.NMTRoot = nmtRoot
+	b.NMTNamespaceToTxIndexes = NMTNamespaceToTxIndexes
+	b.NMTProofs = NMTProofs
+
+	nmtSpan.End()
 
 	blk, err := b.StatefulBlock.Marshal()
 	if err != nil {
@@ -427,6 +500,52 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 	b.results = results
 	b.feeManager = feeManager
 
+	// NMT root verification
+	txsDataToProve := make([][]byte, 0, len(b.Txs))
+	for i := 0; i < len(b.Txs); i++ {
+		tx := b.Txs[i]
+		txResult := b.results[i]
+		txID := tx.ID()
+
+		nID := tx.Action.NMTNamespace()
+
+		txData := make([]byte, 1+len(txID[:])+len(txResult.Output))
+		txData = append(txData, nID...)
+		txData = append(txData, txID[:]...)
+		txData = append(txData, txResult.Output...)
+		txsDataToProve = append(txsDataToProve, txData)
+	}
+
+	proofJson, err := json.Marshal(b.NMTProofs)
+	if err != nil {
+		b.vm.Logger().Debug("check if proofs are received", zap.String("proof", string(proofJson)))
+		return ErrProofsNotReceived
+	}
+	txMappingJson, err := json.Marshal(b.NMTNamespaceToTxIndexes)
+	if err != nil {
+		b.vm.Logger().Debug("check if transactions mapping received", zap.String("txMapping", string(txMappingJson)))
+		return ErrTxNSMappingNotReceived
+	}
+
+	nmtTree := nmt.New(sha256.New())
+	for _, d := range txsDataToProve {
+		if err := nmtTree.Push(d); err != nil {
+			b.vm.Logger().Warn("unable to push element", zap.ByteString("element", d))
+			return ErrPushingElementInNMTTree
+		}
+	}
+
+	nmtRoot, err := nmtTree.Root()
+	if err != nil {
+		b.vm.Logger().Warn("unable to compute nmt root", zap.Error(err))
+		return ErrComputingNMTRoot
+	}
+
+	if !bytes.Equal(nmtRoot, b.NMTRoot) {
+		b.vm.Logger().Warn("nmt root not equal", zap.ByteString("expect", nmtRoot), zap.ByteString("actual", b.NMTRoot))
+		return ErrNMTRootNotEqual
+	}
+
 	// Update chain metadata
 	heightKeyStr := string(heightKey)
 	timestampKeyStr := string(timestampKey)
@@ -554,6 +673,12 @@ func (b *StatelessBlock) Accept(ctx context.Context) error {
 		}
 		if err := b.innerVerify(ctx, vctx); err != nil {
 			return fmt.Errorf("%w: unable to verify block", err)
+		}
+	}
+
+	if b.vm.GetStoreBlockResultsOnDisk() {
+		if err := b.vm.StoreBlockResultsOnDisk(b); err != nil {
+			return fmt.Errorf("%w: unable to store block results on disk", err)
 		}
 	}
 
@@ -801,7 +926,7 @@ func (b *StatelessBlock) FeeManager() *fees.Manager {
 func (b *StatefulBlock) Marshal() ([]byte, error) {
 	size := ids.IDLen + consts.Uint64Len + consts.Uint64Len +
 		consts.Uint64Len + window.WindowSliceSize +
-		consts.IntLen + codec.CummSize(b.Txs) +
+		consts.IntLen + codec.CummSize(b.Txs) + ids.IDLen +
 		ids.IDLen + consts.Uint64Len + consts.Uint64Len
 
 	p := codec.NewWriter(size, consts.NetworkSizeLimit)
@@ -819,7 +944,23 @@ func (b *StatefulBlock) Marshal() ([]byte, error) {
 		b.authCounts[tx.Auth.GetTypeID()]++
 	}
 
+	p.PackInt64(b.L1Head)
+
 	p.PackID(b.StateRoot)
+
+	p.PackBytes(b.NMTRoot)
+
+	proofsJson, err := json.Marshal(b.NMTProofs)
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(proofsJson)
+	nmtNSTxMapping, err := json.Marshal(b.NMTNamespaceToTxIndexes)
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(nmtNSTxMapping)
+
 	bytes := p.Bytes()
 	if err := p.Err(); err != nil {
 		return nil, err
@@ -853,7 +994,32 @@ func UnmarshalBlock(raw []byte, parser Parser) (*StatefulBlock, error) {
 		b.authCounts[tx.Auth.GetTypeID()]++
 	}
 
+	b.L1Head = p.UnpackInt64(false)
+
 	p.UnpackID(false, &b.StateRoot)
+
+	p.UnpackBytes(consts.NMTRootLen, false, &b.NMTRoot)
+	proofs := make(map[string]nmt.Proof)
+	// unknown how much to allocate in advance
+	proofsBytes := make([]byte, 0, 1024)
+	p.UnpackBytes(consts.MaxNMTProofBytes, false, &proofsBytes)
+	fmt.Printf("proof: %s\n", string(proofsBytes))
+	err := json.Unmarshal(proofsBytes, &proofs)
+	if err != nil {
+		fmt.Println("unable to json.unmarshal proofs")
+		return nil, err
+	}
+	txNSMappingBytes := make([]byte, 0, 256)
+	txNsMapping := make(map[string][]int)
+	p.UnpackBytes(consts.MaxNSTxMappingBytes, false, &txNSMappingBytes)
+	err = json.Unmarshal(txNSMappingBytes, &txNsMapping)
+	if err != nil {
+		fmt.Println("unable to json.unmarshal tx to ns mapping")
+		return nil, err
+	}
+
+	b.NMTProofs = proofs
+	b.NMTNamespaceToTxIndexes = txNsMapping
 
 	// Ensure no leftover bytes
 	if !p.Empty() {
