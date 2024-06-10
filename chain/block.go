@@ -4,8 +4,12 @@
 package chain
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -27,6 +31,7 @@ import (
 	"github.com/AnomalyFi/hypersdk/window"
 	"github.com/AnomalyFi/hypersdk/workers"
 
+	"github.com/celestiaorg/nmt"
 	ethhex "github.com/ethereum/go-ethereum/common/hexutil"
 )
 
@@ -251,26 +256,38 @@ func (b *StatelessBlock) initializeBuilt(
 	// store namespaces used in this block
 	nmtNSs := make([][]byte, 0, 10)
 	NMTNamespaceToTxIndexes := make(map[string][]int)
+
+	resCount := 0
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		txResult := results[i]
+		// txResult := results[i]
 		txID := tx.ID()
 
-		nID := tx.Action.NMTNamespace()
-		nmtNSs = append(nmtNSs, nID)
+		for j := 0; j < len(tx.Actions); j++ {
 
-		if _, ok := NMTNamespaceToTxIndexes[hex.EncodeToString(nID)]; !ok {
-			NMTNamespaceToTxIndexes[hex.EncodeToString(nID)] = make([]int, 0, 1)
+			txResult := results[resCount]
+			nID := tx.Actions[j].NMTNamespace()
+			nmtNSs = append(nmtNSs, nID)
+
+			if _, ok := NMTNamespaceToTxIndexes[hex.EncodeToString(nID)]; !ok {
+				NMTNamespaceToTxIndexes[hex.EncodeToString(nID)] = make([]int, 0, 1)
+			}
+			a := NMTNamespaceToTxIndexes[hex.EncodeToString(nID)]
+			a = append(a, i)
+			NMTNamespaceToTxIndexes[hex.EncodeToString(nID)] = a
+
+			//TODO j here needs to be number of actions within the transaction and then resCount here
+			//needs to correspond to which output we want for a specific action not the whole transaction list
+			txData := make([]byte, 1+len(txID[:])+len(txResult.Outputs[j]))
+			txData = append(txData, nID...)
+			txData = append(txData, txID[:]...)
+			for k := 0; k < len(txResult.Outputs[j]); k++ {
+				txData = append(txData, txResult.Outputs[j][k][:]...)
+			}
+			//txData = append(txData, txResult.Outputs[j]...)
+			txsDataToProve = append(txsDataToProve, txData)
+			resCount++
 		}
-		a := NMTNamespaceToTxIndexes[hex.EncodeToString(nID)]
-		a = append(a, i)
-		NMTNamespaceToTxIndexes[hex.EncodeToString(nID)] = a
-
-		txData := make([]byte, 1+len(txID[:])+len(txResult.Output))
-		txData = append(txData, nID...)
-		txData = append(txData, txID[:]...)
-		txData = append(txData, txResult.Output...)
-		txsDataToProve = append(txsDataToProve, txData)
 	}
 
 	// default tree uses 8 bytes as namespace id
@@ -502,18 +519,41 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 
 	// NMT root verification
 	txsDataToProve := make([][]byte, 0, len(b.Txs))
+	// for i := 0; i < len(b.Txs); i++ {
+	// 	tx := b.Txs[i]
+	// 	txResult := b.results[i]
+	// 	txID := tx.ID()
+
+	// 	nID := tx.Action.NMTNamespace()
+
+	// 	txData := make([]byte, 1+len(txID[:])+len(txResult.Output))
+	// 	txData = append(txData, nID...)
+	// 	txData = append(txData, txID[:]...)
+	// 	txData = append(txData, txResult.Output...)
+	// 	txsDataToProve = append(txsDataToProve, txData)
+	// }
+
+	resCount := 0
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
-		txResult := b.results[i]
+		// txResult := results[i]
 		txID := tx.ID()
 
-		nID := tx.Action.NMTNamespace()
+		for j := 0; j < len(tx.Actions); j++ {
 
-		txData := make([]byte, 1+len(txID[:])+len(txResult.Output))
-		txData = append(txData, nID...)
-		txData = append(txData, txID[:]...)
-		txData = append(txData, txResult.Output...)
-		txsDataToProve = append(txsDataToProve, txData)
+			txResult := results[resCount]
+			nID := tx.Actions[j].NMTNamespace()
+
+			txData := make([]byte, 1+len(txID[:])+len(txResult.Outputs[j]))
+			txData = append(txData, nID...)
+			txData = append(txData, txID[:]...)
+			for k := 0; k < len(txResult.Outputs[j]); k++ {
+				txData = append(txData, txResult.Outputs[j][k][:]...)
+			}
+			//txData = append(txData, txResult.Outputs[j]...)
+			txsDataToProve = append(txsDataToProve, txData)
+			resCount++
+		}
 	}
 
 	proofJson, err := json.Marshal(b.NMTProofs)
