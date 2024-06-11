@@ -28,31 +28,8 @@ func PackBlockMessage(b *chain.StatelessBlock) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.PackID(b.ID())
 	p.PackBytes(mresults)
 	p.PackFixedBytes(b.FeeManager().UnitPrices().Bytes())
-	return p.Bytes(), p.Err()
-}
-
-func PackBlockMessageForBackwardStream(b *chain.StatefulBlock, results []*chain.Result, feeBytes []byte) ([]byte, error) {
-	size := b.Size() + consts.IntLen + codec.CummSize(results) + fees.DimensionsLen
-	p := codec.NewWriter(size, consts.MaxInt)
-	blkID, err := b.ID()
-	if err != nil {
-		return nil, err
-	}
-	p.PackID(blkID)
-	blkBytes, err := b.Marshal()
-	if err != nil {
-		return nil, err
-	}
-	p.PackBytes(blkBytes)
-	mresults, err := chain.MarshalResults(results)
-	if err != nil {
-		return nil, err
-	}
-	p.PackBytes(mresults)
-	p.PackFixedBytes(feeBytes)
 	return p.Bytes(), p.Err()
 }
 

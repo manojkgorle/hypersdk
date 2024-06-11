@@ -169,23 +169,32 @@ func (w *WebSocketServer) MessageCallback(vm VM) pubsub.Callback {
 					return
 				} else {
 					for i := blockNumber; i <= currentBlockHeight; i++ {
-						blk, err := vm.GetDiskBlock(i)
+						blk, err := vm.GetDiskBlock(ctx, i)
 						if err != nil {
 							w.logger.Error("Couldnot find block on disk", zap.Uint64("height", i))
 							return
 						}
-						blkResults, err := vm.GetDiskBlockResults(ctx, i)
-						if err != nil {
-							w.logger.Error("Couldnot find block results on disk", zap.Uint64("height", i))
-							return
-						}
-						feeBytes, err := vm.GetDiskFeeManager(ctx, i)
-						if err != nil {
-							w.logger.Error("Something went wrong, couldnot find block results on disk")
-							w.logger.Error("Couldnot get feeBytes on disk", zap.Uint64("height", i))
-							return
-						}
-						bytes, err := PackBlockMessageForBackwardStream(blk, blkResults, feeBytes)
+						// blkResults, err := vm.GetDiskBlockResults(ctx, i)
+						// if err != nil {
+						// 	w.logger.Error("Couldnot find block results on disk", zap.Uint64("height", i))
+						// 	return
+						// }
+						// feeBytes, err := vm.GetDiskFeeManager(ctx, i)
+						// if err != nil {
+						// 	w.logger.Error("Something went wrong, couldnot find block results on disk")
+						// 	w.logger.Error("Couldnot get feeBytes on disk", zap.Uint64("height", i))
+						// 	return
+						// }
+
+						//TODO need to change this from stateful block to stateless block before packing messages
+						// blkStateless, err := chain.ParseStatefulBlock(
+						// 	ctx,
+						// 	blk,
+						// 	nil,
+						// 	choices.Accepted,
+						// 	vm,
+						// )
+						bytes, err := PackBlockMessage(blk)
 						if err != nil {
 							return
 						}

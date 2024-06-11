@@ -28,9 +28,14 @@ type VM interface {
 		txs []*chain.Transaction,
 	) (errs []error)
 	LastAcceptedBlock() *chain.StatelessBlock
+	LastL1Head() int64
 	UnitPrices(context.Context) (fees.Dimensions, error)
 	CurrentValidators(
 		context.Context,
 	) (map[ids.NodeID]*validators.GetValidatorOutput, map[string]struct{})
+	HasDiskBlock(height uint64) (bool, error)
+	GetDiskBlock(ctx context.Context, height uint64) (*chain.StatelessBlock, error)
+	GetDiskBlockResults(ctx context.Context, height uint64) ([]*chain.Result, error)
+	GetDiskFeeManager(ctx context.Context, height uint64) ([]byte, error)
 	GetVerifyAuth() bool
 }
