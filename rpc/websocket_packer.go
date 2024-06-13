@@ -23,6 +23,8 @@ func PackBlockMessage(b *chain.StatelessBlock) ([]byte, error) {
 	results := b.Results()
 	size := codec.BytesLen(b.Bytes()) + consts.IntLen + codec.CummSize(results) + fees.DimensionsLen
 	p := codec.NewWriter(size, consts.MaxInt)
+
+	p.PackID(b.ID())
 	p.PackBytes(b.Bytes())
 	mresults, err := chain.MarshalResults(results)
 	if err != nil {

@@ -166,6 +166,7 @@ func (s *stateSyncerClient) AcceptedSyncableBlock(
 	// Update the last accepted to the state target block,
 	// since we don't want bootstrapping to fetch all the blocks
 	// from genesis to the sync target.
+	s.vm.Logger().Debug("marking block as accepted", zap.Uint64("Height", s.target.Hght), zap.Int("len(blk.bytes)", len(s.target.Bytes())))
 	s.target.MarkAccepted(context.Background())
 
 	// Kickoff state syncing from [s.target]

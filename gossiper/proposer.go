@@ -289,7 +289,7 @@ func (g *Proposer) Queue(context.Context) {
 	sleep := force - now
 	sleepDur := time.Duration(sleep * int64(time.Millisecond))
 	g.timer.SetTimeoutIn(sleepDur)
-	g.vm.Logger().Debug("waiting to notify to gossip", zap.Duration("t", sleepDur))
+	// g.vm.Logger().Debug("waiting to notify to gossip", zap.Duration("t", sleepDur))
 }
 
 // periodically but less aggressively force-regossip the pending

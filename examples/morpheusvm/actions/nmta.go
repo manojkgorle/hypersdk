@@ -7,7 +7,6 @@ import (
 	"github.com/AnomalyFi/hypersdk/codec"
 	"github.com/AnomalyFi/hypersdk/consts"
 	"github.com/AnomalyFi/hypersdk/crypto/ed25519"
-	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/auth"
 	"github.com/AnomalyFi/hypersdk/examples/morpheusvm/storage"
 
 	"github.com/AnomalyFi/hypersdk/state"
@@ -27,9 +26,9 @@ func (*NMTTestAction) GetTypeID() uint8 {
 	return NMTTestActionID
 }
 
-func (t *NMTTestAction) StateKeys(rauth chain.Auth, _ ids.ID) []string {
-	return []string{
-		string(storage.BalanceKey(auth.GetActor(rauth))),
+func (t *NMTTestAction) StateKeys(actor codec.Address, _ ids.ID) state.Keys {
+	return state.Keys{
+		string(storage.BalanceKey(actor)): state.Read | state.Write,
 	}
 }
 
