@@ -136,7 +136,7 @@ func (t *Transaction) Units(sm StateManager, r Rules) (fees.Dimensions, error) {
 	// Calculate compute usage
 	computeOp := math.NewUint64Operator(r.GetBaseComputeUnits())
 	for _, action := range t.Actions {
-		computeOp.Add(action.ComputeUnits(r))
+		computeOp.Add(action.ComputeUnits(t.Auth.Actor(), r))
 	}
 	computeOp.Add(t.Auth.ComputeUnits(r))
 	maxComputeUnits, err := computeOp.Value()
@@ -202,7 +202,7 @@ func EstimateUnits(r Rules, actions []Action, authFactory AuthFactory) (fees.Dim
 		bandwidth += consts.ByteLen + uint64(action.Size())
 		actionStateKeysMaxChunks := action.StateKeysMaxChunks()
 		stateKeysMaxChunks = append(stateKeysMaxChunks, actionStateKeysMaxChunks...)
-		computeOp.Add(action.ComputeUnits(r))
+		computeOp.Add(action.ComputeUnits(authFactory.Address(), r))
 	}
 	authBandwidth, authCompute := authFactory.MaxUnits()
 	bandwidth += consts.ByteLen + authBandwidth
