@@ -118,3 +118,39 @@ func (j *JSONRPCServer) UnitPrices(
 	reply.UnitPrices = unitPrices
 	return nil
 }
+
+type GetShareProofsArgs struct {
+	Height uint64 `json:"height"`
+	RowIdx uint   `json:"rowIdx"`
+	ColIdx uint   `json:"colIdx"`
+}
+
+type GetShareProofsReply struct {
+	Proofs [][]byte `json:"proofs"`
+}
+
+func (j *JSONRPCServer) GetShareRowProofs(_ *http.Request, args *GetShareProofsArgs, reply *GetShareProofsReply) error {
+	eds, err := j.vm.GetEDSByBlockHeight(args.Height)
+	if err != nil {
+		return err
+	}
+	_, proofs, _, _, err := computeRowProofs(eds, args.RowIdx, args.ColIdx)
+	if err != nil {
+		return err
+	}
+	reply.Proofs = proofs
+	return nil
+}
+
+func (j *JSONRPCServer) GetShareColProofs(_ *http.Request, args *GetShareProofsArgs, reply *GetShareProofsReply) error {
+	eds, err := j.vm.GetEDSByBlockHeight(args.Height)
+	if err != nil {
+		return err
+	}
+	_, proofs, _, _, err := computeColProofs(eds, args.RowIdx, args.ColIdx)
+	if err != nil {
+		return err
+	}
+	reply.Proofs = proofs
+	return nil
+}

@@ -256,6 +256,8 @@ type Action interface {
 		actor codec.Address,
 		txID ids.ID,
 	) (success bool, computeUnits uint64, output []byte, err error)
+
+	Data() []byte
 }
 
 type Auth interface {

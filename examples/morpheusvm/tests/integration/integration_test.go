@@ -452,6 +452,24 @@ var _ = ginkgo.Describe("[Tx Processing]", func() {
 	})
 
 	ginkgo.It("ensure multiple txs work ", func() {
+		ginkgo.By("da", func() {
+			parser, err := instances[1].lcli.Parser(context.Background())
+			gomega.Ω(err).Should(gomega.BeNil())
+			submit, _, _, err := instances[1].cli.GenerateTransaction(
+				context.Background(),
+				parser,
+				&actions.DA{
+					DAData: []byte("data"),
+				},
+				factory,
+			)
+			gomega.Ω(err).Should(gomega.BeNil())
+			gomega.Ω(submit(context.Background())).Should(gomega.BeNil())
+			accept := expectBlk(instances[1])
+			results := accept(true)
+			gomega.Ω(results).Should(gomega.HaveLen(1))
+			gomega.Ω(results[0].Success).Should(gomega.BeTrue())
+		})
 		ginkgo.By("transfer funds again", func() {
 			parser, err := instances[1].lcli.Parser(context.Background())
 			gomega.Ω(err).Should(gomega.BeNil())
@@ -695,6 +713,7 @@ var _ = ginkgo.Describe("[Tx Processing]", func() {
 			gomega.Ω(blocks[0].Height()).Should(gomega.Equal(uint64(1)))
 
 			n := instances[2]
+
 			blk1, err := n.vm.ParseBlock(ctx, blocks[0].Bytes())
 			gomega.Ω(err).Should(gomega.BeNil())
 			err = blk1.Verify(ctx)

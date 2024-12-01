@@ -28,8 +28,9 @@ type WebSocketClient struct {
 	writeStopped chan struct{}
 	readStopped  chan struct{}
 
-	pendingBlocks chan []byte
-	pendingTxs    chan []byte
+	pendingBlocks  chan []byte
+	pendingHeaders chan []byte
+	pendingTxs     chan []byte
 
 	startedClose bool
 	closed       bool
@@ -58,12 +59,13 @@ func NewWebSocketClient(uri string, handshakeTimeout time.Duration, pending int,
 	}
 	resp.Body.Close()
 	wc := &WebSocketClient{
-		conn:          conn,
-		mb:            pubsub.NewMessageBuffer(&logging.NoLog{}, pending, maxSize, pubsub.MaxMessageWait),
-		readStopped:   make(chan struct{}),
-		writeStopped:  make(chan struct{}),
-		pendingBlocks: make(chan []byte, pending),
-		pendingTxs:    make(chan []byte, pending),
+		conn:           conn,
+		mb:             pubsub.NewMessageBuffer(&logging.NoLog{}, pending, maxSize, pubsub.MaxMessageWait),
+		readStopped:    make(chan struct{}),
+		writeStopped:   make(chan struct{}),
+		pendingBlocks:  make(chan []byte, pending),
+		pendingHeaders: make(chan []byte, pending),
+		pendingTxs:     make(chan []byte, pending),
 	}
 	go func() {
 		defer close(wc.readStopped)
@@ -91,6 +93,8 @@ func NewWebSocketClient(uri string, handshakeTimeout time.Duration, pending int,
 					wc.pendingBlocks <- tmsg
 				case TxMode:
 					wc.pendingTxs <- tmsg
+				case LightMode:
+					wc.pendingHeaders <- tmsg
 				default:
 					utils.Outf("{{orange}}unexpected message mode:{{/}} %x\n", msg[0])
 					continue
@@ -151,6 +155,27 @@ func (c *WebSocketClient) ListenBlock(
 		return nil, nil, fees.Dimensions{}, c.err
 	case <-ctx.Done():
 		return nil, nil, fees.Dimensions{}, ctx.Err()
+	}
+}
+
+func (c *WebSocketClient) RegisterLightClient() error {
+	if c.closed {
+		return ErrClosed
+	}
+	return c.mb.Send([]byte{LightMode})
+}
+
+func (c *WebSocketClient) ListenLightHeaders(
+	ctx context.Context,
+	parser chain.Parser,
+) (uint64, []byte, [][]byte, [][]byte, error) {
+	select {
+	case msg := <-c.pendingHeaders:
+		return UnpackLightMessage(msg, parser)
+	case <-c.readStopped:
+		return 0, nil, nil, nil, c.err
+	case <-ctx.Done():
+		return 0, nil, nil, nil, ctx.Err()
 	}
 }
 

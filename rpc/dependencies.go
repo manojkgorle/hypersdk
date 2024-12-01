@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/trace"
 	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/manojkgorle/rsmt2d"
 
 	"github.com/ava-labs/hypersdk/chain"
 	"github.com/ava-labs/hypersdk/fees"
@@ -33,4 +34,5 @@ type VM interface {
 		context.Context,
 	) (map[ids.NodeID]*validators.GetValidatorOutput, map[string]struct{})
 	GetVerifyAuth() bool
+	GetEDSByBlockHeight(uint64) (*rsmt2d.ExtendedDataSquare, error)
 }

@@ -15,4 +15,5 @@ var (
 	ErrStateSyncing        = errors.New("state still syncing")
 	ErrUnexpectedStateRoot = errors.New("unexpected state root")
 	ErrTooManyProcessing   = errors.New("too many processing")
+	ErrEDSNotFound         = errors.New("EDS not found")
 )

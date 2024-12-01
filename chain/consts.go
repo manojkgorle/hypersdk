@@ -26,6 +26,8 @@ const (
 	MaxKeyDependencies = 100_000_000
 )
 
+const ShareSize = 512
+
 func HeightKey(prefix []byte) []byte {
 	return keys.EncodeChunks(prefix, HeightKeyChunks)
 }

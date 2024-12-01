@@ -4,8 +4,11 @@
 package chain
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -15,6 +18,8 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/x/merkledb"
+	"github.com/celestiaorg/merkletree"
+	"github.com/manojkgorle/rsmt2d"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -48,7 +53,10 @@ type StatefulBlock struct {
 	// or [Verify], which reduces the amount of time we are
 	// blocking the consensus engine from voting on the block,
 	// starting the verification of another block, etc.
-	StateRoot ids.ID `json:"stateRoot"`
+	StateRoot   ids.ID   `json:"stateRoot"`
+	DataRoot    []byte   `json:"dataRoot"`
+	RowRoots    [][]byte `json:"rowRoots"`
+	ColumnRoots [][]byte `json:"columnRoots"`
 
 	size int
 
@@ -70,6 +78,18 @@ func (b *StatefulBlock) ID() (ids.ID, error) {
 }
 
 func NewGenesisBlock(root ids.ID) *StatefulBlock {
+	data := make([]byte, ShareSize)
+	eds, _ := rsmt2d.ComputeExtendedDataSquare([][]byte{data}, rsmt2d.NewLeoRSCodec(), rsmt2d.NewDefaultTree)
+	rroots, _ := eds.RowRoots()
+	croots, _ := eds.ColRoots()
+	tree := merkletree.NewFromTreehasher(merkletree.NewDefaultHasher(sha256.New()))
+	for _, root := range rroots {
+		tree.Push(root)
+	}
+	for _, root := range croots {
+		tree.Push(root)
+	}
+	mroot := tree.Root()
 	return &StatefulBlock{
 		// We set the genesis block timestamp to be after the ProposerVM fork activation.
 		//
@@ -82,7 +102,10 @@ func NewGenesisBlock(root ids.ID) *StatefulBlock {
 		Tmstmp: time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC).UnixMilli(),
 
 		// StateRoot should include all allocates made when loading the genesis file
-		StateRoot: root,
+		StateRoot:   root,
+		DataRoot:    mroot,
+		RowRoots:    rroots,
+		ColumnRoots: croots,
 	}
 }
 
@@ -100,6 +123,8 @@ type StatelessBlock struct {
 
 	results    []*Result
 	feeManager *fees.Manager
+
+	eds *rsmt2d.ExtendedDataSquare
 
 	vm   VM
 	view merkledb.View
@@ -473,6 +498,54 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 		)
 	}
 
+	txData := make([]byte, 0)
+	for _, tx := range b.Txs {
+		if tx.Action.GetTypeID() == 1 {
+			txData = append(txData, tx.Action.Data()...)
+		}
+	}
+	if len(txData) == 0 {
+		txData = append(txData, make([]byte, ShareSize)...)
+	}
+	if len(txData)%ShareSize != 0 {
+		diff := ShareSize - len(txData)%ShareSize
+		txData = append(txData, make([]byte, diff)...)
+	}
+	var holder [][]byte
+	for i := 0; i < len(txData)/ShareSize; i++ {
+		holder = append(holder, txData[i*ShareSize:(i+1)*ShareSize])
+	}
+	rcodec := rsmt2d.NewLeoRSCodec()
+	eds, err := rsmt2d.ComputeExtendedDataSquare(holder, rcodec, rsmt2d.NewDefaultTree)
+	if err != nil {
+		return err
+	}
+	rroots, err := eds.RowRoots()
+	if err != nil {
+		return err
+	}
+	croots, err := eds.ColRoots()
+	if err != nil {
+		return err
+	}
+	b.ColumnRoots = croots
+	tree := merkletree.NewFromTreehasher(merkletree.NewDefaultHasher(sha256.New()))
+	for i, root := range rroots {
+		if !bytes.Equal(root, b.RowRoots[i]) {
+			return fmt.Errorf("row root mismatch, %d, %s, %s", i, root, b.RowRoots[i])
+		}
+		tree.Push(root)
+	}
+	for i, root := range croots {
+		if !bytes.Equal(root, b.ColumnRoots[i]) {
+			return fmt.Errorf("row root mismatch, %d", i)
+		}
+		tree.Push(root)
+	}
+	if !bytes.Equal(b.DataRoot, tree.Root()) {
+		return fmt.Errorf("data root mismatch")
+	}
+	b.eds = eds
 	// Ensure signatures are verified
 	_, sspan := b.vm.Tracer().Start(ctx, "StatelessBlock.Verify.WaitSignatures")
 	start = time.Now()
@@ -608,6 +681,10 @@ func (b *StatelessBlock) Timestamp() time.Time { return b.t }
 // Used to determine if should notify listeners and/or pass to controller
 func (b *StatelessBlock) Processed() bool {
 	return b.view != nil
+}
+
+func (b *StatelessBlock) EDS() *rsmt2d.ExtendedDataSquare {
+	return b.eds
 }
 
 // View returns the [merkledb.TrieView] of the block (representing the state
@@ -820,6 +897,17 @@ func (b *StatefulBlock) Marshal() ([]byte, error) {
 	}
 
 	p.PackID(b.StateRoot)
+	p.PackBytes(b.DataRoot)
+	bt, err := json.Marshal(&b.RowRoots)
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(bt)
+	ct, err := json.Marshal(&b.ColumnRoots)
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(ct)
 	bytes := p.Bytes()
 	if err := p.Err(); err != nil {
 		return nil, err
@@ -854,7 +942,20 @@ func UnmarshalBlock(raw []byte, parser Parser) (*StatefulBlock, error) {
 	}
 
 	p.UnpackID(false, &b.StateRoot)
-
+	p.UnpackBytes(-1, false, &b.DataRoot)
+	var bt []byte
+	p.UnpackBytes(-1, false, &bt)
+	err := json.Unmarshal(bt, &b.RowRoots)
+	if err != nil {
+		return nil, fmt.Errorf("row root unmarshall err, %w", err)
+	}
+	var ct []byte
+	p.UnpackBytes(-1, false, &ct)
+	err = json.Unmarshal(ct, &b.ColumnRoots)
+	if err != nil {
+		// fmt.Println("row roots")
+		return nil, fmt.Errorf("column root unmarshall err, %w", err)
+	}
 	// Ensure no leftover bytes
 	if !p.Empty() {
 		return nil, fmt.Errorf("%w: remaining=%d", ErrInvalidObject, len(raw)-p.Offset())

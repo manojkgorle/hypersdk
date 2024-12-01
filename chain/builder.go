@@ -5,6 +5,7 @@ package chain
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -15,6 +16,8 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/celestiaorg/merkletree"
+	"github.com/manojkgorle/rsmt2d"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 
@@ -425,6 +428,48 @@ func BuildBlock(
 	}
 	b.StateRoot = root
 
+	txData := make([]byte, 0)
+	for _, tx := range b.Txs {
+		if tx.Action.GetTypeID() == 1 {
+			// actions.DA
+			txData = append(txData, tx.Action.Data()...)
+		}
+	}
+	if len(txData) == 0 {
+		txData = append(txData, make([]byte, ShareSize)...)
+	}
+	if len(txData)%ShareSize != 0 {
+		diff := ShareSize - len(txData)%ShareSize
+		txData = append(txData, make([]byte, diff)...)
+	}
+	var holder [][]byte
+	for i := 0; i < len(txData)/ShareSize; i++ {
+		holder = append(holder, txData[i*ShareSize:(i+1)*ShareSize])
+	}
+	rcodec := rsmt2d.NewLeoRSCodec()
+	eds, err := rsmt2d.ComputeExtendedDataSquare(holder, rcodec, rsmt2d.NewDefaultTree)
+	if err != nil {
+		return nil, err
+	}
+	rroots, err := eds.RowRoots()
+	if err != nil {
+		return nil, err
+	}
+	croots, err := eds.ColRoots()
+	if err != nil {
+		return nil, err
+	}
+	b.RowRoots = rroots
+	b.ColumnRoots = croots
+	tree := merkletree.NewFromTreehasher(merkletree.NewDefaultHasher(sha256.New()))
+	for _, root := range rroots {
+		tree.Push(root)
+	}
+	for _, root := range croots {
+		tree.Push(root)
+	}
+	b.DataRoot = tree.Root()
+	b.eds = eds
 	// Get view from [tstate] after writing all changed keys
 	view, err := ts.ExportMerkleDBView(ctx, vm.Tracer(), parentView)
 	if err != nil {

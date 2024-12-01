@@ -4,7 +4,9 @@
 package rpc
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
 
@@ -17,7 +19,57 @@ import (
 const (
 	BlockMode byte = 0
 	TxMode    byte = 1
+	LightMode byte = 2
 )
+
+func PackLightMessage(b *chain.StatelessBlock) ([]byte, error) {
+	dataRoot := b.DataRoot
+	rowRoots := b.RowRoots
+	columnRoots := b.ColumnRoots
+	size := len(dataRoot)
+	for i := range rowRoots {
+		size += len(rowRoots[i]) + len(columnRoots[i])
+	}
+	p := codec.NewWriter(size, consts.MaxInt)
+	p.PackUint64(b.Hght)
+	p.PackBytes(dataRoot)
+	rb, err := json.Marshal(rowRoots)
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(rb)
+	cb, err := json.Marshal(columnRoots)
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(cb)
+	return p.Bytes(), p.Err()
+}
+
+func UnpackLightMessage(
+	msg []byte,
+	parser chain.Parser,
+) (height uint64, dataroot []byte, rowroots [][]byte, columnroots [][]byte, err error) {
+	p := codec.NewReader(msg, consts.MaxInt)
+	height = p.UnpackUint64(true)
+	p.UnpackBytes(-1, false, &dataroot)
+	var bt []byte
+	p.UnpackBytes(-1, false, &bt)
+	err = json.Unmarshal(bt, &rowroots)
+	if err != nil {
+		return 0, nil, nil, nil, fmt.Errorf("row root unmarshall err, %w", err)
+	}
+	var ct []byte
+	p.UnpackBytes(-1, false, &ct)
+	err = json.Unmarshal(ct, &columnroots)
+	if err != nil {
+		return 0, nil, nil, nil, fmt.Errorf("column root unmarshall err, %w", err)
+	}
+	if !p.Empty() {
+		return 0, nil, nil, nil, chain.ErrInvalidObject
+	}
+	return height, dataroot, rowroots, columnroots, p.Err()
+}
 
 func PackBlockMessage(b *chain.StatelessBlock) ([]byte, error) {
 	results := b.Results()

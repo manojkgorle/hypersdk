@@ -115,6 +115,28 @@ func (cli *JSONRPCClient) SubmitTx(ctx context.Context, d []byte) (ids.ID, error
 	return resp.TxID, err
 }
 
+func (cli *JSONRPCClient) GetShareRowProofs(ctx context.Context, height uint64, rowIDx, colIDx uint) ([][]byte, error) {
+	resp := new(GetShareProofsReply)
+	err := cli.requester.SendRequest(
+		ctx,
+		"getShareRowProofs",
+		&GetShareProofsArgs{Height: height, RowIdx: rowIDx, ColIdx: colIDx},
+		resp,
+	)
+	return resp.Proofs, err
+}
+
+func (cli *JSONRPCClient) GetShareColProofs(ctx context.Context, height uint64, rowIDx, colIDx uint) ([][]byte, error) {
+	resp := new(GetShareProofsReply)
+	err := cli.requester.SendRequest(
+		ctx,
+		"getShareColProofs",
+		&GetShareProofsArgs{Height: height, RowIdx: rowIDx, ColIdx: colIDx},
+		resp,
+	)
+	return resp.Proofs, err
+}
+
 type Modifier interface {
 	Base(*chain.Base)
 }

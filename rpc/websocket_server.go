@@ -23,16 +23,17 @@ type WebSocketServer struct {
 	s      *pubsub.Server
 
 	blockListeners *pubsub.Connections
-
-	txL         sync.Mutex
-	txListeners map[ids.ID]*pubsub.Connections
-	expiringTxs *emap.EMap[*chain.Transaction] // ensures all tx listeners are eventually responded to
+	lightListeners *pubsub.Connections
+	txL            sync.Mutex
+	txListeners    map[ids.ID]*pubsub.Connections
+	expiringTxs    *emap.EMap[*chain.Transaction] // ensures all tx listeners are eventually responded to
 }
 
 func NewWebSocketServer(vm VM, maxPendingMessages int) (*WebSocketServer, *pubsub.Server) {
 	w := &WebSocketServer{
 		logger:         vm.Logger(),
 		blockListeners: pubsub.NewConnections(),
+		lightListeners: pubsub.NewConnections(),
 		txListeners:    map[ids.ID]*pubsub.Connections{},
 		expiringTxs:    emap.NewEMap[*chain.Transaction](),
 	}
@@ -105,6 +106,17 @@ func (w *WebSocketServer) AcceptBlock(b *chain.StatelessBlock) error {
 		inactiveConnection := w.s.Publish(append([]byte{BlockMode}, bytes...), w.blockListeners)
 		for _, conn := range inactiveConnection {
 			w.blockListeners.Remove(conn)
+		}
+	}
+
+	if w.lightListeners.Len() > 0 {
+		bytes, err := PackLightMessage(b)
+		if err != nil {
+			return err
+		}
+		inactiveConnection := w.s.Publish(append([]byte{LightMode}, bytes...), w.lightListeners)
+		for _, conn := range inactiveConnection {
+			w.lightListeners.Remove(conn)
 		}
 	}
 
@@ -194,6 +206,9 @@ func (w *WebSocketServer) MessageCallback(vm VM) pubsub.Callback {
 				return
 			}
 			log.Debug("submitted tx", zap.Stringer("id", txID))
+		case LightMode:
+			w.lightListeners.Add(c)
+			log.Debug("added light listener")
 		default:
 			log.Error("unexpected message type",
 				zap.Int("len", len(msgBytes)),

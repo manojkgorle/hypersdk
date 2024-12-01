@@ -22,6 +22,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/avalanchego/x/merkledb"
+	"github.com/manojkgorle/rsmt2d"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
@@ -117,6 +118,9 @@ type VM struct {
 	metrics  *Metrics
 	profiler profiler.ContinuousProfiler
 
+	blockdataeds  map[uint64]*rsmt2d.ExtendedDataSquare
+	blockdataedsL sync.RWMutex
+
 	ready chan struct{}
 	stop  chan struct{}
 }
@@ -147,6 +151,7 @@ func (vm *VM) Initialize(
 	vm.seenValidityWindow = make(chan struct{})
 	vm.ready = make(chan struct{})
 	vm.stop = make(chan struct{})
+	vm.blockdataeds = make(map[uint64]*rsmt2d.ExtendedDataSquare)
 	gatherer := avametrics.NewMultiGatherer()
 	if err := vm.snowCtx.Metrics.Register(gatherer); err != nil {
 		return err

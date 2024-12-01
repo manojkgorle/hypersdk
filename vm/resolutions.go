@@ -7,6 +7,8 @@ import (
 	"context"
 	"time"
 
+	"encoding/hex"
+
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
@@ -15,6 +17,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/x/merkledb"
+	"github.com/manojkgorle/rsmt2d"
 	"go.uber.org/zap"
 
 	"github.com/ava-labs/hypersdk/builder"
@@ -239,6 +242,10 @@ func (vm *VM) Accepted(ctx context.Context, b *chain.StatelessBlock) {
 	delete(vm.verifiedBlocks, b.ID())
 	vm.verifiedL.Unlock()
 
+	vm.blockdataedsL.Lock()
+	vm.blockdataeds[b.Hght] = b.EDS()
+	vm.blockdataedsL.Unlock()
+
 	// Update replay protection heap
 	//
 	// Transactions are added to [seen] with their [expiry], so we don't need to
@@ -285,7 +292,7 @@ func (vm *VM) Accepted(ctx context.Context, b *chain.StatelessBlock) {
 		zap.Stringer("blkID", b.ID()),
 		zap.Uint64("height", b.Hght),
 		zap.Int("txs", len(b.Txs)),
-		zap.Stringer("parent root", b.StateRoot),
+		zap.String("data root", hex.EncodeToString(b.DataRoot)),
 		zap.Int("size", len(b.Bytes())),
 		zap.Int("dropped mempool txs", len(removed)),
 		zap.Bool("state ready", vm.StateReady()),
@@ -420,6 +427,17 @@ func (vm *VM) GetAuthBatchVerifier(authTypeID uint8, cores int, count int) (chai
 		return nil, false
 	}
 	return bv.GetBatchVerifier(cores, count), ok
+}
+
+func (vm *VM) GetEDSByBlockHeight(h uint64) (*rsmt2d.ExtendedDataSquare, error) {
+	vm.blockdataedsL.Lock()
+	defer vm.blockdataedsL.Unlock()
+
+	eds, ok := vm.blockdataeds[h]
+	if !ok {
+		return nil, ErrEDSNotFound
+	}
+	return eds, nil
 }
 
 func (vm *VM) cacheAuth(auth chain.Auth) {
