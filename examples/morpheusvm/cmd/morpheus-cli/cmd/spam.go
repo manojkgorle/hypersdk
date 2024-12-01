@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"context"
+	"math/rand"
+	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/hypersdk/chain"
@@ -94,10 +96,15 @@ var runSpamCmd = &cobra.Command{
 			func(ctx context.Context, chainID ids.ID) (chain.Parser, error) { // getParser
 				return bclient.Parser(ctx)
 			},
-			func(addr codec.Address, amount uint64) chain.Action { // getTransfer
+			func(addr codec.Address, amount uint64) chain.Action { // createTransfer
 				return &actions.Transfer{
 					To:    addr,
 					Value: amount,
+				}
+			},
+			func(dad *[]byte) chain.Action { // getDA
+				return &actions.DA{
+					DAData: *dad,
 				}
 			},
 			func(cli *rpc.JSONRPCClient, priv *cli.PrivateKey) func(context.Context, uint64) error { // submitDummy
@@ -106,9 +113,11 @@ var runSpamCmd = &cobra.Command{
 					if err != nil {
 						return err
 					}
-					_, _, err = sendAndWait(ictx, &actions.Transfer{
-						To:    priv.Address,
-						Value: count, // prevent duplicate txs
+					rand.NewSource(time.Now().UnixNano())
+					d := make([]byte, 1024)
+					_, _ = rand.Read(d)
+					_, _, err = sendAndWait(ictx, &actions.DA{
+						DAData: d,
 					}, cli, bclient, wclient, factory, false)
 					return err
 				}

@@ -167,6 +167,7 @@ func init() {
 	)
 	spamCmd.AddCommand(
 		runSpamCmd,
+		// runDASpamCmd,
 	)
 
 	// prometheus

@@ -53,6 +53,7 @@ func (h *Handler) Spam(
 	lookupBalance func(int, string) (uint64, error),
 	getParser func(context.Context, ids.ID) (chain.Parser, error),
 	getTransfer func(codec.Address, uint64) chain.Action,
+	getDA func(*[]byte) chain.Action,
 	submitDummy func(*rpc.JSONRPCClient, *PrivateKey) func(context.Context, uint64) error,
 ) error {
 	ctx := context.Background()
@@ -110,7 +111,8 @@ func (h *Handler) Spam(
 	if err != nil {
 		return err
 	}
-	action := getTransfer(keys[0].Address, 0)
+	dar := make([]byte, 1024)
+	action := getDA(&dar)
 	maxUnits, err := chain.EstimateMaxUnits(parser.Rules(time.Now().UnixMilli()), action, factory)
 	if err != nil {
 		return err
@@ -275,6 +277,7 @@ func (h *Handler) Spam(
 				funds[accounts[i].Address] = balance
 				fundsL.Unlock()
 			}()
+			rand.NewSource(time.Now().UnixNano())
 			ut := time.Now().Unix()
 			for {
 				select {
@@ -307,7 +310,9 @@ func (h *Handler) Spam(
 						}
 						v := selected[recipient] + 1
 						selected[recipient] = v
-						action := getTransfer(recipient, uint64(v))
+						d := make([]byte, 1024)
+						_, _ = rand.Read(d)
+						action := getDA(&d)
 						fee, err := fees.MulSum(unitPrices, maxUnits)
 						if err != nil {
 							utils.Outf("{{orange}}failed to estimate max fee:{{/}} %v\n", err)

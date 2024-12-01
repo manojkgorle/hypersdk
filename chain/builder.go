@@ -431,7 +431,6 @@ func BuildBlock(
 	txData := make([]byte, 0)
 	for _, tx := range b.Txs {
 		if tx.Action.GetTypeID() == 1 {
-			// actions.DA
 			txData = append(txData, tx.Action.Data()...)
 		}
 	}
