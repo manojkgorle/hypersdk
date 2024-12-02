@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/x/merkledb"
+	"github.com/manojkgorle/rsmt2d"
 
 	"github.com/ava-labs/hypersdk/codec"
 	"github.com/ava-labs/hypersdk/executor"
@@ -79,6 +80,9 @@ type VM interface {
 	GetTargetBuildDuration() time.Duration
 	GetTransactionExecutionCores() int
 	GetStateFetchConcurrency() int
+
+	WriteBlockDataEdsAsync(ids.ID, *rsmt2d.ExtendedDataSquare, [][]byte, [][]byte, []byte)
+	GetBlockDataEdsAsync(ids.ID) (*rsmt2d.ExtendedDataSquare, [][]byte, [][]byte, []byte)
 
 	Verified(context.Context, *StatelessBlock)
 	Rejected(context.Context, *StatelessBlock)

@@ -53,7 +53,9 @@ type StatefulBlock struct {
 	// or [Verify], which reduces the amount of time we are
 	// blocking the consensus engine from voting on the block,
 	// starting the verification of another block, etc.
-	StateRoot   ids.ID   `json:"stateRoot"`
+	StateRoot ids.ID `json:"stateRoot"`
+
+	// DataRoot, RowRoots, ColumnRoots are produced asynchronously
 	DataRoot    []byte   `json:"dataRoot"`
 	RowRoots    [][]byte `json:"rowRoots"`
 	ColumnRoots [][]byte `json:"columnRoots"`
@@ -497,7 +499,21 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 			b.StateRoot,
 		)
 	}
-
+	eds, prr, pcc, pdr := b.vm.GetBlockDataEdsAsync(b.Parent())
+	for i, root := range prr {
+		if !bytes.Equal(root, b.RowRoots[i]) {
+			return fmt.Errorf("row root mismatch %d", i)
+		}
+	}
+	for i, root := range pcc {
+		if !bytes.Equal(root, b.ColumnRoots[i]) {
+			return fmt.Errorf("column root mismatch %d", i)
+		}
+	}
+	if !bytes.Equal(pdr, b.DataRoot) {
+		return fmt.Errorf("data root mismatch")
+	}
+	b.eds = eds
 	txData := make([]byte, 0)
 	for _, tx := range b.Txs {
 		if tx.Action.GetTypeID() == 1 {
@@ -515,37 +531,12 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 	for i := 0; i < len(txData)/ShareSize; i++ {
 		holder = append(holder, txData[i*ShareSize:(i+1)*ShareSize])
 	}
-	rcodec := rsmt2d.NewLeoRSCodec()
-	eds, err := rsmt2d.ComputeExtendedDataSquare(holder, rcodec, rsmt2d.NewDefaultTree)
-	if err != nil {
-		return err
-	}
-	rroots, err := eds.RowRoots()
-	if err != nil {
-		return err
-	}
-	croots, err := eds.ColRoots()
-	if err != nil {
-		return err
-	}
-	b.ColumnRoots = croots
-	tree := merkletree.NewFromTreehasher(merkletree.NewDefaultHasher(sha256.New()))
-	for i, root := range rroots {
-		if !bytes.Equal(root, b.RowRoots[i]) {
-			return fmt.Errorf("row root mismatch, %d, %s, %s", i, root, b.RowRoots[i])
+	if !isSquareNumber(len(holder)) {
+		diff := nextSquareOffset(len(holder))
+		for i := 0; i < diff; i++ {
+			holder = append(holder, make([]byte, ShareSize))
 		}
-		tree.Push(root)
 	}
-	for i, root := range croots {
-		if !bytes.Equal(root, b.ColumnRoots[i]) {
-			return fmt.Errorf("row root mismatch, %d", i)
-		}
-		tree.Push(root)
-	}
-	if !bytes.Equal(b.DataRoot, tree.Root()) {
-		return fmt.Errorf("data root mismatch")
-	}
-	b.eds = eds
 	// Ensure signatures are verified
 	_, sspan := b.vm.Tracer().Start(ctx, "StatelessBlock.Verify.WaitSignatures")
 	start = time.Now()
@@ -565,6 +556,32 @@ func (b *StatelessBlock) innerVerify(ctx context.Context, vctx VerifyContext) er
 	}
 	b.view = view
 
+	go func() {
+		rcodec := rsmt2d.NewLeoRSCodec()
+		eds, err := rsmt2d.ComputeExtendedDataSquare(holder, rcodec, rsmt2d.NewDefaultTree)
+		if err != nil {
+			log.Error("failed to compute extended data square", zap.Error(err))
+			return
+		}
+		rroots, err := eds.RowRoots()
+		if err != nil {
+			log.Error("failed to get row roots", zap.Error(err))
+			return
+		}
+		croots, err := eds.ColRoots()
+		if err != nil {
+			log.Error("failed to get column roots", zap.Error(err))
+			return
+		}
+		tree := merkletree.NewFromTreehasher(merkletree.NewDefaultHasher(sha256.New()))
+		for _, root := range rroots {
+			tree.Push(root)
+		}
+		for _, root := range croots {
+			tree.Push(root)
+		}
+		b.vm.WriteBlockDataEdsAsync(b.ID(), eds, rroots, croots, tree.Root())
+	}()
 	// Kickoff root generation
 	go func() {
 		start := time.Now()

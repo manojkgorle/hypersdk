@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -136,6 +137,7 @@ func BuildBlock(
 		// asynchronously.
 		prepareStreamLock sync.Mutex
 
+		daTx bool
 		// stop is used to trigger that we should stop building, assuming we are no longer executing
 		stop bool
 	)
@@ -144,6 +146,9 @@ func BuildBlock(
 	mempool.StartStreaming(ctx)
 	b.Txs = []*Transaction{}
 	for time.Since(start) < vm.GetTargetBuildDuration() && !stop {
+		if daTx && time.Since(start) > vm.GetTargetBuildDuration()-600*time.Millisecond {
+			break
+		}
 		prepareStreamLock.Lock()
 		txs := mempool.Stream(ctx, streamBatch)
 		prepareStreamLock.Unlock()
@@ -262,7 +267,9 @@ func BuildBlock(
 						cacheLock.Unlock()
 					}()
 				}
-
+				if tx.Action.GetTypeID() == 1 {
+					daTx = true
+				}
 				// Execute block
 				tsv := ts.NewView(stateKeys, storage)
 				if err := tx.PreExecute(ctx, feeManager, sm, r, tsv, nextTime); err != nil {
@@ -445,42 +452,54 @@ func BuildBlock(
 	for i := 0; i < len(txData)/ShareSize; i++ {
 		holder = append(holder, txData[i*ShareSize:(i+1)*ShareSize])
 	}
-	rcodec := rsmt2d.NewLeoRSCodec()
-	eds, err := rsmt2d.ComputeExtendedDataSquare(holder, rcodec, rsmt2d.NewDefaultTree)
-	if err != nil {
-		return nil, err
+	if !isSquareNumber(len(holder)) {
+		diff := nextSquareOffset(len(holder))
+		for i := 0; i < diff; i++ {
+			holder = append(holder, make([]byte, ShareSize))
+		}
 	}
-	rroots, err := eds.RowRoots()
-	if err != nil {
-		return nil, err
-	}
-	croots, err := eds.ColRoots()
-	if err != nil {
-		return nil, err
-	}
-	b.RowRoots = rroots
-	b.ColumnRoots = croots
-	tree := merkletree.NewFromTreehasher(merkletree.NewDefaultHasher(sha256.New()))
-	for _, root := range rroots {
-		tree.Push(root)
-	}
-	for _, root := range croots {
-		tree.Push(root)
-	}
-	b.DataRoot = tree.Root()
-	b.eds = eds
 	// Get view from [tstate] after writing all changed keys
 	view, err := ts.ExportMerkleDBView(ctx, vm.Tracer(), parentView)
 	if err != nil {
 		return nil, err
 	}
-
+	eds, rr, cr, dr := vm.GetBlockDataEdsAsync(parent.id)
+	b.DataRoot = dr
+	b.RowRoots = rr
+	b.ColumnRoots = cr
+	b.eds = eds
 	// Compute block hash and marshaled representation
 	if err := b.initializeBuilt(ctx, view, results, feeManager); err != nil {
 		log.Warn("block failed", zap.Int("txs", len(b.Txs)), zap.Any("consumed", feeManager.UnitsConsumed()))
 		return nil, err
 	}
 
+	go func() {
+		rcodec := rsmt2d.NewLeoRSCodec()
+		eds, err := rsmt2d.ComputeExtendedDataSquare(holder, rcodec, rsmt2d.NewDefaultTree)
+		if err != nil {
+			log.Error("extended data square computation failed", zap.Error(err))
+			return
+		}
+		rroots, err := eds.RowRoots()
+		if err != nil {
+			log.Error("row roots computation failed", zap.Error(err))
+			return
+		}
+		croots, err := eds.ColRoots()
+		if err != nil {
+			log.Error("column roots computation failed", zap.Error(err))
+			return
+		}
+		tree := merkletree.NewFromTreehasher(merkletree.NewDefaultHasher(sha256.New()))
+		for _, root := range rroots {
+			tree.Push(root)
+		}
+		for _, root := range croots {
+			tree.Push(root)
+		}
+		vm.WriteBlockDataEdsAsync(b.id, eds, rroots, croots, tree.Root())
+	}()
 	// Kickoff root generation
 	go func() {
 		start := time.Now()
@@ -508,4 +527,23 @@ func BuildBlock(
 		zap.Int64("block (t)", b.Tmstmp),
 	)
 	return b, nil
+}
+
+func isSquareNumber(n int) bool {
+	if n < 0 {
+		return false // Negative numbers are not square numbers
+	}
+	sqrt := int(math.Sqrt(float64(n)))
+	return sqrt*sqrt == n
+}
+
+// nextSquareOffset calculates how far n is from the next square number.
+func nextSquareOffset(n int) int {
+	if n < 0 {
+		return -1 // Negative numbers cannot be squares
+	}
+	sqrt := math.Sqrt(float64(n))
+	nextSquare := int(math.Ceil(sqrt)) // Ceiling to get the next integer
+	nextSquareNumber := nextSquare * nextSquare
+	return nextSquareNumber - n
 }

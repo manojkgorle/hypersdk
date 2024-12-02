@@ -483,3 +483,24 @@ func (vm *VM) GetExecutorBuildRecorder() executor.Metrics {
 func (vm *VM) GetExecutorVerifyRecorder() executor.Metrics {
 	return vm.metrics.executorVerifyRecorder
 }
+
+func (vm *VM) WriteBlockDataEdsAsync(id ids.ID, eds *rsmt2d.ExtendedDataSquare, rowRoots [][]byte, columnRoots [][]byte, dataRoot []byte) {
+	vm.dblockdataedsL.Lock()
+	defer vm.dblockdataedsL.Unlock()
+
+	vm.dblockdataeds[id] = eds
+	vm.rowRootsMap[id] = rowRoots
+	vm.columnRootsMap[id] = columnRoots
+	vm.dataRootMap[id] = dataRoot
+}
+
+func (vm *VM) GetBlockDataEdsAsync(id ids.ID) (eds *rsmt2d.ExtendedDataSquare, rowRoots [][]byte, columnRoots [][]byte, dataRoot []byte) {
+	vm.dblockdataedsL.Lock()
+	defer vm.dblockdataedsL.Unlock()
+
+	eds, ok := vm.dblockdataeds[id]
+	if !ok {
+		return nil, nil, nil, nil
+	}
+	return eds, vm.rowRootsMap[id], vm.columnRootsMap[id], vm.dataRootMap[id]
+}

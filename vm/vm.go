@@ -121,6 +121,12 @@ type VM struct {
 	blockdataeds  map[uint64]*rsmt2d.ExtendedDataSquare
 	blockdataedsL sync.RWMutex
 
+	dblockdataeds  map[ids.ID]*rsmt2d.ExtendedDataSquare
+	rowRootsMap    map[ids.ID][][]byte
+	columnRootsMap map[ids.ID][][]byte
+	dataRootMap    map[ids.ID][]byte
+	dblockdataedsL sync.RWMutex
+
 	ready chan struct{}
 	stop  chan struct{}
 }
@@ -152,6 +158,11 @@ func (vm *VM) Initialize(
 	vm.ready = make(chan struct{})
 	vm.stop = make(chan struct{})
 	vm.blockdataeds = make(map[uint64]*rsmt2d.ExtendedDataSquare)
+	vm.dblockdataeds = make(map[ids.ID]*rsmt2d.ExtendedDataSquare)
+	vm.rowRootsMap = make(map[ids.ID][][]byte)
+	vm.columnRootsMap = make(map[ids.ID][][]byte)
+	vm.dataRootMap = make(map[ids.ID][]byte)
+
 	gatherer := avametrics.NewMultiGatherer()
 	if err := vm.snowCtx.Metrics.Register(gatherer); err != nil {
 		return err
